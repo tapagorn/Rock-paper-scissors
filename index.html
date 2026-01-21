@@ -132,7 +132,22 @@
                 เป่ายิ้งฉุบ <br/>
                 <span class="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-yellow-500">วัดดวงรับโชค</span>
             </h1>
-            <p class="text-white/80 text-sm md:text-base font-light">ชนะรับรางวัลทันที! แพ้อดนะจ๊ะ</p>
+            <p class="text-white/80 text-sm md:text-base font-light">กติกา: ชนะ 2 ใน 3 เพื่อรับรางวัล</p>
+        </div>
+
+        <!-- Scoreboard (New Feature) -->
+        <div id="scoreboard" class="w-full max-w-xs mb-4 flex justify-between items-center px-6 py-2 bg-white/10 rounded-full backdrop-blur-sm border border-white/10 hidden">
+            <div class="flex flex-col items-center">
+                <span class="text-xs opacity-70">คุณ</span>
+                <span id="pScore" class="text-2xl font-bold text-blue-300">0</span>
+            </div>
+            <div class="text-xs font-bold text-yellow-400 bg-yellow-400/20 px-2 py-1 rounded">
+                RACE TO 2
+            </div>
+            <div class="flex flex-col items-center">
+                <span class="text-xs opacity-70">หนานหล่อ</span>
+                <span id="cScore" class="text-2xl font-bold text-red-300">0</span>
+            </div>
         </div>
 
         <!-- Game Area -->
@@ -141,8 +156,7 @@
             <!-- Result Display (Hidden initially) -->
             <div id="battleArena" class="hidden h-48 mb-6 relative flex justify-center items-center gap-8">
                 <div class="text-center transform transition-all duration-300" id="playerHandDisplay">
-                    <p class="text-sm opacity-70 mb-2">คุณ</p>
-                    <div class="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center border-4 border-blue-400 shadow-lg glass-panel">
+                    <div class="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center border-4 border-blue-400 shadow-lg glass-panel transition-all" id="pHandBorder">
                         <span class="emoji-xl" id="playerEmoji">✊</span>
                     </div>
                 </div>
@@ -150,8 +164,7 @@
                 <div class="text-2xl font-black text-yellow-400 italic absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20 drop-shadow-lg">VS</div>
 
                 <div class="text-center transform transition-all duration-300" id="cpuHandDisplay">
-                    <p class="text-sm opacity-70 mb-2">หนานหล่อ</p>
-                    <div class="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center border-4 border-red-400 shadow-lg glass-panel">
+                    <div class="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center border-4 border-red-400 shadow-lg glass-panel transition-all" id="cHandBorder">
                         <span class="emoji-xl" id="cpuEmoji">✊</span>
                     </div>
                 </div>
@@ -285,13 +298,6 @@
     <script>
         // --- Configuration ---
         // !!! สำคัญ: นำ URL ที่ได้จากขั้นตอน Deploy Web App มาวางในเครื่องหมายคำพูดด้านล่าง !!!
-        // ถ้าต้องการเก็บ UserAgent ลง Sheet ให้แก้โค้ด Apps Script เป็น:
-        // function doPost(e) {
-        //   var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-        //   var data = JSON.parse(e.postData.contents);
-        //   sheet.appendRow([new Date(), data.visitorId, data.result, data.code, data.userAgent]); // เพิ่ม data.userAgent
-        //   return ContentService.createTextOutput(JSON.stringify({"status":"success"})).setMimeType(ContentService.MimeType.JSON);
-        // }
         const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwLMWFgQ27eusc73eF941Exkrrtq7RyG1IRkMKdjls0iiV20H24AdRCsZlV8ZolpBo3/exec';
 
         // --- Global Variables ---
@@ -317,10 +323,13 @@
         };
 
         const state = {
-            isPlaying: false, // Wait for init
+            isPlaying: false, 
             soundEnabled: true,
             hasPlayed: false,
-            canPlay: true // Controls round execution
+            canPlay: true,
+            // เพิ่มระบบคะแนน
+            pScore: 0,
+            cScore: 0
         };
         
         const losingMessages = [
@@ -409,10 +418,16 @@
             const playerEmoji = document.getElementById('playerEmoji');
             const cpuEmoji = document.getElementById('cpuEmoji');
             const statusText = document.getElementById('statusText');
+            
+            // Reset Border color each round
+            document.getElementById('pHandBorder').className = "w-24 h-24 bg-white/10 rounded-full flex items-center justify-center border-4 border-blue-400 shadow-lg glass-panel transition-all";
+            document.getElementById('cHandBorder').className = "w-24 h-24 bg-white/10 rounded-full flex items-center justify-center border-4 border-red-400 shadow-lg glass-panel transition-all";
 
-            // Show Arena
+            // Show Arena & Scoreboard
             battleArena.classList.remove('hidden');
             battleArena.classList.add('flex');
+            document.getElementById('scoreboard').classList.remove('hidden');
+            document.getElementById('scoreboard').classList.add('flex');
             
             // Animation Loop (Shaking)
             let count = 0;
@@ -457,32 +472,81 @@
             const result = getResult(playerChoice, cpuChoice);
             
             if (result === 'draw') {
-                statusText.textContent = `เสมอ! (${THAI_NAMES[cpuChoice]} ชน ${THAI_NAMES[playerChoice]})`;
+                statusText.textContent = `เสมอ!`;
                 statusText.className = "text-center h-8 font-bold text-white text-lg";
-                setTimeout(() => {
-                    alert("เสมอ! ลองอีกครั้งครับ");
-                    resetRound();
-                }, 1000);
-            } else {
-                const isWin = result === 'win';
-                state.hasPlayed = true;
-                localStorage.setItem(`${PLAYED_KEY_PREFIX}${visitorId}`, 'true');
-
-                if (isWin) {
-                    statusText.textContent = "คุณชนะ!";
-                    statusText.className = "text-center h-8 font-bold text-green-400 text-2xl drop-shadow-md";
-                    playTone('win');
-                    triggerConfetti();
-                    const code = generateRewardCode();
-                    logPlay(visitorId, true, code);
-                    setTimeout(() => showResultModal(true, code), 1200);
+                setTimeout(() => nextRound(false), 1500);
+            } else if (result === 'win') {
+                state.pScore++;
+                updateScoreBoard();
+                document.getElementById('pHandBorder').classList.replace('border-blue-400', 'border-green-400');
+                statusText.textContent = "คุณชนะรอบนี้!";
+                statusText.className = "text-center h-8 font-bold text-green-400 text-lg";
+                
+                if (state.pScore >= 2) {
+                    setTimeout(() => finalizeGame(true), 1500);
                 } else {
-                    statusText.textContent = "คุณแพ้!";
-                    statusText.className = "text-center h-8 font-bold text-red-400 text-2xl drop-shadow-md";
-                    playTone('lose');
-                    logPlay(visitorId, false, null);
-                    setTimeout(() => showResultModal(false, null), 1200);
+                    setTimeout(() => nextRound(true), 1500);
                 }
+            } else {
+                state.cScore++;
+                updateScoreBoard();
+                document.getElementById('cHandBorder').classList.replace('border-red-400', 'border-green-400'); // Winner border
+                statusText.textContent = "หนานหล่อชนะรอบนี้!";
+                statusText.className = "text-center h-8 font-bold text-red-400 text-lg";
+
+                if (state.cScore >= 2) {
+                    setTimeout(() => finalizeGame(false), 1500);
+                } else {
+                    setTimeout(() => nextRound(true), 1500);
+                }
+            }
+        }
+
+        function updateScoreBoard() {
+            document.getElementById('pScore').textContent = state.pScore;
+            document.getElementById('cScore').textContent = state.cScore;
+            
+            // Effect on change
+            const sb = document.getElementById('scoreboard');
+            sb.classList.add('scale-110');
+            setTimeout(() => sb.classList.remove('scale-110'), 200);
+        }
+
+        function nextRound(scoreChanged) {
+            state.canPlay = true;
+            document.getElementById('controls').classList.remove('opacity-50', 'pointer-events-none');
+            // Don't hide arena completely, just prompt next move
+            // But reset emojis to rocks for next visual cue? Or keep last result?
+            // Let's reset to make it clear new round starts
+            document.getElementById('playerEmoji').textContent = "✊";
+            document.getElementById('cpuEmoji').textContent = "✊";
+            document.getElementById('pHandBorder').className = "w-24 h-24 bg-white/10 rounded-full flex items-center justify-center border-4 border-blue-400 shadow-lg glass-panel transition-all";
+            document.getElementById('cHandBorder').className = "w-24 h-24 bg-white/10 rounded-full flex items-center justify-center border-4 border-red-400 shadow-lg glass-panel transition-all";
+            
+            document.getElementById('statusText').textContent = "รอบต่อไป... เลือกอาวุธ!";
+            document.getElementById('statusText').className = "text-center h-8 font-bold text-yellow-200 text-lg animate-pulse";
+        }
+
+        function finalizeGame(isWin) {
+            state.hasPlayed = true;
+            localStorage.setItem(`${PLAYED_KEY_PREFIX}${visitorId}`, 'true');
+            
+            const statusText = document.getElementById('statusText');
+            
+            if (isWin) {
+                statusText.textContent = "ยินดีด้วย! คุณชนะแมตช์นี้";
+                statusText.className = "text-center h-8 font-bold text-green-400 text-2xl drop-shadow-md";
+                playTone('win');
+                triggerConfetti();
+                const code = generateRewardCode();
+                logPlay(visitorId, true, code);
+                setTimeout(() => showResultModal(true, code), 1200);
+            } else {
+                statusText.textContent = "เสียใจด้วย! คุณแพ้แมตช์นี้";
+                statusText.className = "text-center h-8 font-bold text-red-400 text-2xl drop-shadow-md";
+                playTone('lose');
+                logPlay(visitorId, false, null);
+                setTimeout(() => showResultModal(false, null), 1200);
             }
         }
 
@@ -494,15 +558,6 @@
                 return 'win';
             }
             return 'lose';
-        }
-
-        function resetRound() {
-            state.canPlay = true;
-            document.getElementById('controls').classList.remove('opacity-50', 'pointer-events-none');
-            document.getElementById('battleArena').classList.add('hidden');
-            document.getElementById('battleArena').classList.remove('flex');
-            document.getElementById('statusText').textContent = "เลือกอาวุธของคุณ!";
-            document.getElementById('statusText').className = "text-center h-8 font-bold text-yellow-200 text-lg animate-pulse";
         }
 
         function showResultModal(isWin, code) {
@@ -549,6 +604,9 @@
                     <div class="text-6xl mb-4">${isWin ? '🎉' : '🥀'}</div>
                     <h3 class="text-xl font-bold mb-2 text-white">จบเกมแล้ว</h3>
                     <p class="text-white/70 text-sm">ขอบคุณที่ร่วมสนุกกับร้านหนานหล่อ</p>
+                    <div class="mt-4 inline-block bg-white/10 px-4 py-2 rounded-full text-sm">
+                        สกอร์จบเกม: คุณ ${state.pScore} - ${state.cScore} หนานหล่อ
+                    </div>
                 </div>
             `;
 
@@ -590,8 +648,6 @@
 
             // 2. ส่งไป Google Sheets (ถ้ามี URL)
             if (GOOGLE_SCRIPT_URL && GOOGLE_SCRIPT_URL.startsWith('http')) {
-                // ใช้ mode: 'no-cors' เพื่อยิงข้อมูลข้ามโดเมนได้โดยไม่ติด Browser Policy
-                // (ข้อเสีย: เราจะไม่รู้ว่าสำเร็จหรือไม่ผ่าน response text แต่ข้อมูลจะเข้า Sheet ปกติ)
                 fetch(GOOGLE_SCRIPT_URL, {
                     method: 'POST',
                     mode: 'no-cors', 
@@ -738,11 +794,17 @@
                             <div class="text-6xl mb-4">${savedResult.isWin ? '🎉' : '🥀'}</div>
                             <h3 class="text-xl font-bold mb-2 text-white">จบเกมแล้ว</h3>
                             <p class="text-white/70 text-sm">ขอบคุณที่ร่วมสนุกกับร้านหนานหล่อ</p>
+                            <div class="mt-4 inline-block bg-white/10 px-4 py-2 rounded-full text-sm opacity-50">
+                                Best of 3 Result
+                            </div>
                         </div>
                     `;
+                    document.getElementById('scoreboard').classList.add('hidden');
                 }
             } else {
                 state.canPlay = true;
+                document.getElementById('scoreboard').classList.add('flex');
+                document.getElementById('scoreboard').classList.remove('hidden');
             }
             lucide.createIcons();
         }
