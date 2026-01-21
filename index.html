@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>หนานหล่อ - เป่ายิ้งฉุบวัดดวง</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&family=Sarabun:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <!-- FingerprintJS -->
+    <script>
+        const fpPromise = import('https://openfpcdn.io/fingerprintjs/v4')
+            .then(FingerprintJS => FingerprintJS.load());
+    </script>
+
+    <style>
+        body {
+            font-family: 'Poppins', 'Sarabun', sans-serif;
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #60a5fa 100%); /* Blue theme for change */
+            height: 100vh;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        /* Glassmorphism Classes */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+
+        .glass-btn {
+            background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.05) 100%);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-btn:hover:not(:disabled) {
+            transform: translateY(-4px);
+            background: rgba(255,255,255,0.25);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+            border-color: rgba(255,255,255,0.8);
+        }
+
+        .glass-btn:active:not(:disabled) {
+            transform: scale(0.95);
+        }
+
+        .glass-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            filter: grayscale(1);
+        }
+
+        /* Game Specific Animations */
+        @keyframes bounce-hand {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .animate-bounce-hand {
+            animation: bounce-hand 0.5s infinite;
+        }
+
+        @keyframes shake {
+            0% { transform: rotate(0deg); }
+            25% { transform: rotate(-15deg); }
+            50% { transform: rotate(0deg); }
+            75% { transform: rotate(15deg); }
+            100% { transform: rotate(0deg); }
+        }
+
+        .shake-hand {
+            animation: shake 0.5s ease-in-out infinite;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-enter {
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        /* Admin Styles */
+        .admin-row:nth-child(even) { background-color: rgba(255, 255, 255, 0.05); }
+        .admin-row:hover { background-color: rgba(255, 255, 255, 0.1); }
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
+        .custom-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 3px; }
+
+        /* Emoji Text Helper */
+        .emoji-xl { font-size: 4rem; line-height: 1; }
+        .emoji-lg { font-size: 2.5rem; line-height: 1; }
+    </style>
+</head>
+<body class="text-white select-none flex flex-col items-center justify-center relative p-4">
+
+    <!-- Header Section -->
+    <header class="w-full max-w-md flex justify-between items-center mb-4 z-10">
+        <div class="flex items-center gap-2 cursor-pointer select-none active:opacity-70 transition-opacity" id="adminTrigger">
+            <div class="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
+                <i data-lucide="gift" class="w-6 h-6 text-yellow-300"></i>
+            </div>
+            <span class="font-bold text-lg tracking-wide uppercase text-white/90">ร้าน<span class="text-yellow-300">หนานหล่อ</span></span>
+        </div>
+        
+        <button id="soundToggle" class="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-sm">
+            <i id="soundIcon" data-lucide="volume-2" class="w-5 h-5"></i>
+        </button>
+    </header>
+
+    <!-- Main Game Container -->
+    <main class="w-full max-w-md flex flex-col items-center z-10 relative">
+        <div class="text-center mb-6">
+            <h1 class="text-4xl md:text-5xl font-extrabold mb-2 drop-shadow-lg leading-normal">
+                เป่ายิ้งฉุบ <br/>
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-yellow-500">วัดดวงรับโชค</span>
+            </h1>
+            <p class="text-white/80 text-sm md:text-base font-light">ชนะรับรางวัลทันที! แพ้อดนะจ๊ะ</p>
+        </div>
+
+        <!-- Game Area -->
+        <div id="gameArea" class="w-full transition-opacity duration-500">
+            
+            <!-- Result Display (Hidden initially) -->
+            <div id="battleArena" class="hidden h-48 mb-6 relative flex justify-center items-center gap-8">
+                <div class="text-center transform transition-all duration-300" id="playerHandDisplay">
+                    <p class="text-sm opacity-70 mb-2">คุณ</p>
+                    <div class="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center border-4 border-blue-400 shadow-lg glass-panel">
+                        <span class="emoji-xl" id="playerEmoji">✊</span>
+                    </div>
+                </div>
+
+                <div class="text-2xl font-black text-yellow-400 italic absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20 drop-shadow-lg">VS</div>
+
+                <div class="text-center transform transition-all duration-300" id="cpuHandDisplay">
+                    <p class="text-sm opacity-70 mb-2">หนานหล่อ</p>
+                    <div class="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center border-4 border-red-400 shadow-lg glass-panel">
+                        <span class="emoji-xl" id="cpuEmoji">✊</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Selection Controls -->
+            <div id="controls" class="grid grid-cols-3 gap-3 w-full mb-6">
+                <button onclick="playRound('rock')" class="glass-btn rounded-2xl p-4 flex flex-col items-center justify-center gap-2 group h-32">
+                    <span class="emoji-lg group-hover:scale-110 transition-transform">✊</span>
+                    <span class="font-bold text-sm">ค้อน</span>
+                </button>
+                <button onclick="playRound('paper')" class="glass-btn rounded-2xl p-4 flex flex-col items-center justify-center gap-2 group h-32">
+                    <span class="emoji-lg group-hover:scale-110 transition-transform">✋</span>
+                    <span class="font-bold text-sm">กระดาษ</span>
+                </button>
+                <button onclick="playRound('scissors')" class="glass-btn rounded-2xl p-4 flex flex-col items-center justify-center gap-2 group h-32">
+                    <span class="emoji-lg group-hover:scale-110 transition-transform">✌️</span>
+                    <span class="font-bold text-sm">กรรไกร</span>
+                </button>
+            </div>
+
+            <div id="statusText" class="text-center h-8 font-bold text-yellow-200 text-lg animate-pulse">เลือกอาวุธของคุณ!</div>
+        </div>
+
+        <!-- View Result Button (Shown if already played) -->
+        <button id="viewResultBtn" class="hidden w-full max-w-xs mx-auto py-3 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30 text-white font-semibold transition-all shadow-lg active:scale-95 mb-4 flex items-center justify-center gap-2">
+            <i data-lucide="eye" class="w-5 h-5"></i>
+            ดูผลรางวัลของคุณ
+        </button>
+
+        <div class="mt-8 text-center opacity-60 text-xs">
+            <p>กิจกรรมพิเศษจาก ร้านหนานหล่อ</p>
+        </div>
+    </main>
+
+    <!-- Result Modal -->
+    <div id="resultModal" class="fixed inset-0 z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300 bg-black/60 backdrop-blur-sm">
+        <div id="modalCard" class="glass-panel w-11/12 max-w-sm p-8 rounded-3xl text-center transform scale-90 transition-transform duration-300 border-t border-white/40">
+            <div id="modalIconContainer" class="mx-auto w-24 h-24 rounded-full flex items-center justify-center mb-4 shadow-xl border-4 border-white/20">
+                <span id="modalEmoji" class="text-5xl">🏆</span>
+            </div>
+
+            <h2 id="modalTitle" class="text-3xl font-extrabold mb-2 tracking-tight">You Won!</h2>
+            <p id="modalMessage" class="text-white/80 mb-6 font-light">Congratulations!</p>
+
+            <div id="rewardSection" class="hidden mb-6 bg-black/20 rounded-xl p-4 border border-white/10">
+                <p class="text-xs text-white/50 uppercase tracking-widest mb-2">แคปหน้าจอนี้เพื่อรับรางวัล</p>
+                <div class="bg-white/10 rounded-lg p-2 backdrop-blur-md">
+                    <code class="text-2xl font-mono text-yellow-300 font-bold select-all tracking-wider" id="rewardCode">Waiting...</code>
+                </div>
+            </div>
+
+            <button id="closeModalBtn" onclick="toggleModal(false)" class="hidden w-full py-3 rounded-xl bg-white/10 hover:bg-white/20 mb-2 transition-colors">ปิดหน้าต่าง</button>
+        </div>
+    </div>
+
+    <!-- Admin Login Modal -->
+    <div id="adminLoginModal" class="fixed inset-0 z-[70] flex items-center justify-center hidden bg-black/80 backdrop-blur-sm">
+        <div class="glass-panel w-11/12 max-w-xs p-6 rounded-2xl text-center shadow-2xl">
+            <div class="mx-auto w-12 h-12 bg-white/10 rounded-full flex items-center justify-center mb-4">
+                <i data-lucide="lock" class="text-white w-6 h-6"></i>
+            </div>
+            <h3 class="text-xl font-bold mb-4 text-white">ระบบจัดการ</h3>
+            <input type="password" id="adminPasswordInput" placeholder="รหัสผ่าน" class="w-full bg-black/30 border border-white/20 rounded-lg p-3 text-white placeholder-white/40 mb-4 focus:outline-none focus:border-yellow-400 text-center tracking-widest">
+            <div class="flex gap-2">
+                <button id="cancelLoginBtn" class="flex-1 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors">ยกเลิก</button>
+                <button id="confirmLoginBtn" class="flex-1 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-lg transition-colors">เข้าสู่ระบบ</button>
+            </div>
+            <p id="loginErrorMsg" class="text-red-400 text-xs mt-3 hidden">รหัสผ่านไม่ถูกต้อง</p>
+        </div>
+    </div>
+
+    <!-- Admin Panel Modal -->
+    <div id="adminModal" class="fixed inset-0 z-[60] flex items-center justify-center hidden bg-black/90 backdrop-blur-xl">
+        <div class="w-11/12 max-w-4xl h-[85vh] bg-slate-900 border border-slate-700 rounded-2xl flex flex-col shadow-2xl overflow-hidden text-sm">
+            <!-- Admin Header -->
+            <div class="p-4 bg-slate-800 border-b border-slate-700 flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="database" class="text-blue-400"></i>
+                    <h2 class="font-bold text-lg text-white">ประวัติการเล่น <span class="text-xs text-slate-400 font-normal">(Local Storage)</span></h2>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="exportLogs()" class="px-3 py-1.5 bg-green-600 hover:bg-green-500 rounded text-xs font-semibold flex items-center gap-1 transition-colors text-white">
+                        <i data-lucide="download" class="w-3 h-3"></i> CSV
+                    </button>
+                    <button onclick="clearLogs()" class="px-3 py-1.5 bg-red-600 hover:bg-red-500 rounded text-xs font-semibold flex items-center gap-1 transition-colors text-white">
+                        <i data-lucide="trash-2" class="w-3 h-3"></i> ล้าง
+                    </button>
+                    <button onclick="toggleAdminPanel(false)" class="ml-2 p-1.5 hover:bg-white/10 rounded-full transition-colors">
+                        <i data-lucide="x" class="w-5 h-5 text-slate-400"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Admin Table -->
+            <div class="flex-1 overflow-auto custom-scroll p-4">
+                <table class="w-full text-left border-collapse">
+                    <thead class="sticky top-0 bg-slate-900 z-10 shadow-md">
+                        <tr class="text-slate-400 text-xs uppercase tracking-wider">
+                            <th class="p-3 font-semibold">เวลา</th>
+                            <th class="p-3 font-semibold">Visitor ID</th>
+                            <th class="p-3 font-semibold text-center">ผลลัพธ์</th>
+                            <th class="p-3 font-semibold text-right">รางวัล</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logTableBody" class="text-slate-300 divide-y divide-slate-800">
+                        <!-- Rows injected here -->
+                    </tbody>
+                </table>
+                <div id="noLogsMsg" class="hidden text-center text-slate-500 mt-10">ยังไม่มีประวัติการเล่น</div>
+            </div>
+            
+            <div class="p-2 bg-slate-800 border-t border-slate-700 text-center text-xs text-slate-500">
+                ข้อมูลถูกบันทึกในเครื่องนี้เท่านั้น
+            </div>
+        </div>
+    </div>
+
+    <!-- Background Decoration -->
+    <div class="fixed top-0 left-0 w-full h-full overflow-hidden -z-10 pointer-events-none">
+        <div class="absolute top-[-10%] left-[-10%] w-72 h-72 bg-blue-600 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-blob"></div>
+        <div class="absolute top-[20%] right-[-10%] w-72 h-72 bg-purple-600 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+        <div class="absolute bottom-[-10%] left-[20%] w-80 h-80 bg-cyan-600 rounded-full mix-blend-screen filter blur-3xl opacity-30 animate-blob animation-delay-4000"></div>
+    </div>
+
+    <script>
+        // --- Global Variables ---
+        let visitorId = null;
+        let adminClickCount = 0;
+        let adminClickTimer = null;
+
+        const LOG_STORAGE_KEY = 'rps_nhanlor_logs';
+        const PLAYED_KEY_PREFIX = 'rps_nhanlor_played_';
+        const RESULT_DATA_PREFIX = 'rps_nhanlor_data_';
+
+        // Game Configuration
+        const OPTIONS = ['rock', 'paper', 'scissors'];
+        const EMOJIS = {
+            'rock': '✊',
+            'paper': '✋',
+            'scissors': '✌️'
+        };
+        const THAI_NAMES = {
+            'rock': 'ค้อน',
+            'paper': 'กระดาษ',
+            'scissors': 'กรรไกร'
+        };
+
+        const state = {
+            isPlaying: false, // Wait for init
+            soundEnabled: true,
+            hasPlayed: false,
+            canPlay: true // Controls round execution
+        };
+        
+        const losingMessages = [
+            "แพ้ซะแล้ว! ไม่เป็นไรนะ",
+            "เสียใจด้วย ดวงยังไม่มา",
+            "โดนกินเรียบ! ลองใหม่โอกาสหน้า",
+            "ว้าาา... พลาดไปนิดเดียว",
+            "หนานหล่อชนะ! ไว้มาแก้มือนะ"
+        ];
+
+        const winningMessages = [
+            "สุดยอด! คุณชนะรับรางวัลเลย",
+            "ดวงดีมาก! เอาไปเลยรางวัลใหญ่",
+            "เก่งมาก! หนานหล่อยอมแพ้",
+            "ยินดีด้วย! แคปจอรับของรางวัลด่วน",
+            "Winner! คุณคือผู้โชคดีวันนี้"
+        ];
+
+        function generateRewardCode() {
+          return 'WIN-' + Math.random().toString(36).substring(2, 7).toUpperCase();
+        }
+
+        // --- Audio Engine ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playTone(type) {
+            if (!state.soundEnabled) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            const now = audioCtx.currentTime;
+
+            if (type === 'click') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.exponentialRampToValueAtTime(300, now + 0.1);
+                gainNode.gain.setValueAtTime(0.3, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now);
+                osc.stop(now + 0.1);
+            } else if (type === 'count') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(440, now);
+                gainNode.gain.setValueAtTime(0.1, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now);
+                osc.stop(now + 0.1);
+            } else if (type === 'win') {
+                osc.type = 'triangle';
+                // Victory Fanfare
+                osc.frequency.setValueAtTime(523.25, now); // C5
+                osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
+                osc.frequency.setValueAtTime(783.99, now + 0.2); // G5
+                osc.frequency.setValueAtTime(1046.50, now + 0.3); // C6
+                gainNode.gain.setValueAtTime(0, now);
+                gainNode.gain.linearRampToValueAtTime(0.3, now + 0.1);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 1.5);
+                osc.start(now);
+                osc.stop(now + 1.5);
+            } else if (type === 'lose') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.linearRampToValueAtTime(100, now + 0.4);
+                gainNode.gain.setValueAtTime(0.3, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                osc.start(now);
+                osc.stop(now + 0.5);
+            }
+        }
+
+        // --- Core Game Logic ---
+        async function playRound(playerChoice) {
+            if (!state.canPlay || state.hasPlayed) return;
+            state.canPlay = false;
+
+            // UI Update
+            playTone('click');
+            document.getElementById('controls').classList.add('opacity-50', 'pointer-events-none');
+            const battleArena = document.getElementById('battleArena');
+            const playerHandDisplay = document.getElementById('playerHandDisplay');
+            const cpuHandDisplay = document.getElementById('cpuHandDisplay');
+            const playerEmoji = document.getElementById('playerEmoji');
+            const cpuEmoji = document.getElementById('cpuEmoji');
+            const statusText = document.getElementById('statusText');
+
+            // Show Arena
+            battleArena.classList.remove('hidden');
+            battleArena.classList.add('flex');
+            
+            // Animation Loop (Shaking)
+            let count = 0;
+            statusText.textContent = "เป่า...";
+            playerEmoji.textContent = "✊";
+            cpuEmoji.textContent = "✊";
+            
+            // Add shake classes
+            playerHandDisplay.classList.add('shake-hand');
+            cpuHandDisplay.classList.add('shake-hand');
+
+            const shuffleInterval = setInterval(() => {
+                count++;
+                playTone('count');
+                if (count === 1) statusText.textContent = "ยิ้ง...";
+                if (count === 2) statusText.textContent = "ฉุบ!";
+            }, 600);
+
+            // Wait for animation
+            await new Promise(r => setTimeout(r, 1800));
+            clearInterval(shuffleInterval);
+
+            // Remove shake
+            playerHandDisplay.classList.remove('shake-hand');
+            cpuHandDisplay.classList.remove('shake-hand');
+
+            // Determine Result
+            const cpuChoice = OPTIONS[Math.floor(Math.random() * OPTIONS.length)];
+            
+            // Set Emojis
+            playerEmoji.textContent = EMOJIS[playerChoice];
+            cpuEmoji.textContent = EMOJIS[cpuChoice];
+
+            // Add bounce effect for reveal
+            playerHandDisplay.classList.add('animate-bounce-hand');
+            cpuHandDisplay.classList.add('animate-bounce-hand');
+            setTimeout(() => {
+                playerHandDisplay.classList.remove('animate-bounce-hand');
+                cpuHandDisplay.classList.remove('animate-bounce-hand');
+            }, 500);
+
+            const result = getResult(playerChoice, cpuChoice);
+            
+            if (result === 'draw') {
+                statusText.textContent = `เสมอ! (${THAI_NAMES[cpuChoice]} ชน ${THAI_NAMES[playerChoice]})`;
+                statusText.className = "text-center h-8 font-bold text-white text-lg";
+                setTimeout(() => {
+                    alert("เสมอ! ลองอีกครั้งครับ");
+                    resetRound();
+                }, 1000);
+            } else {
+                const isWin = result === 'win';
+                state.hasPlayed = true;
+                localStorage.setItem(`${PLAYED_KEY_PREFIX}${visitorId}`, 'true');
+
+                if (isWin) {
+                    statusText.textContent = "คุณชนะ!";
+                    statusText.className = "text-center h-8 font-bold text-green-400 text-2xl drop-shadow-md";
+                    playTone('win');
+                    triggerConfetti();
+                    const code = generateRewardCode();
+                    logPlay(visitorId, true, code);
+                    setTimeout(() => showResultModal(true, code), 1200);
+                } else {
+                    statusText.textContent = "คุณแพ้!";
+                    statusText.className = "text-center h-8 font-bold text-red-400 text-2xl drop-shadow-md";
+                    playTone('lose');
+                    logPlay(visitorId, false, null);
+                    setTimeout(() => showResultModal(false, null), 1200);
+                }
+            }
+        }
+
+        function getResult(p, c) {
+            if (p === c) return 'draw';
+            if ((p === 'rock' && c === 'scissors') ||
+                (p === 'paper' && c === 'rock') ||
+                (p === 'scissors' && c === 'paper')) {
+                return 'win';
+            }
+            return 'lose';
+        }
+
+        function resetRound() {
+            state.canPlay = true;
+            document.getElementById('controls').classList.remove('opacity-50', 'pointer-events-none');
+            document.getElementById('battleArena').classList.add('hidden');
+            document.getElementById('battleArena').classList.remove('flex');
+            document.getElementById('statusText').textContent = "เลือกอาวุธของคุณ!";
+            document.getElementById('statusText').className = "text-center h-8 font-bold text-yellow-200 text-lg animate-pulse";
+        }
+
+        function showResultModal(isWin, code) {
+            const modal = document.getElementById('resultModal');
+            const modalCard = document.getElementById('modalCard');
+            const modalIconContainer = document.getElementById('modalIconContainer');
+            const modalEmoji = document.getElementById('modalEmoji');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalMessage = document.getElementById('modalMessage');
+            const rewardSection = document.getElementById('rewardSection');
+            const rewardCodeElement = document.getElementById('rewardCode');
+            const viewResultBtn = document.getElementById('viewResultBtn');
+
+            // Save result to storage
+            const resultData = {
+                isWin: isWin,
+                code: code,
+                timestamp: new Date().toISOString()
+            };
+            localStorage.setItem(`${RESULT_DATA_PREFIX}${visitorId}`, JSON.stringify(resultData));
+
+            if (isWin) {
+                modalIconContainer.className = "mx-auto w-24 h-24 rounded-full flex items-center justify-center mb-4 shadow-xl bg-gradient-to-br from-yellow-400 to-orange-500 border-4 border-white";
+                modalEmoji.textContent = "🏆";
+                modalTitle.textContent = "ยินดีด้วยคุณชนะ!";
+                modalTitle.className = "text-3xl font-extrabold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-500";
+                modalMessage.textContent = winningMessages[Math.floor(Math.random() * winningMessages.length)];
+                rewardCodeElement.textContent = code;
+                rewardSection.classList.remove('hidden');
+            } else {
+                modalIconContainer.className = "mx-auto w-24 h-24 rounded-full flex items-center justify-center mb-4 shadow-xl bg-gray-600 border-4 border-gray-500";
+                modalEmoji.textContent = "😢";
+                modalTitle.textContent = "เสียใจด้วยนะ";
+                modalTitle.className = "text-3xl font-extrabold mb-2 text-gray-300";
+                modalMessage.textContent = losingMessages[Math.floor(Math.random() * losingMessages.length)];
+                rewardSection.classList.add('hidden');
+            }
+
+            viewResultBtn.classList.remove('hidden');
+            
+            // Switch Game Area to "Played" state
+            document.getElementById('gameArea').innerHTML = `
+                <div class="glass-panel p-6 rounded-2xl text-center">
+                    <div class="text-6xl mb-4">${isWin ? '🎉' : '🥀'}</div>
+                    <h3 class="text-xl font-bold mb-2 text-white">จบเกมแล้ว</h3>
+                    <p class="text-white/70 text-sm">ขอบคุณที่ร่วมสนุกกับร้านหนานหล่อ</p>
+                </div>
+            `;
+
+            toggleModal(true);
+        }
+
+        function toggleModal(show) {
+            const modal = document.getElementById('resultModal');
+            const modalCard = document.getElementById('modalCard');
+            if (show) {
+                modal.classList.remove('opacity-0', 'pointer-events-none');
+                modalCard.classList.remove('scale-90');
+                modalCard.classList.add('modal-enter', 'scale-100');
+            } else {
+                modal.classList.add('opacity-0', 'pointer-events-none');
+                modalCard.classList.remove('modal-enter', 'scale-100');
+                modalCard.classList.add('scale-90');
+            }
+        }
+
+        // --- Logging & Admin ---
+        function logPlay(vid, isWin, code) {
+            try {
+                const logs = JSON.parse(localStorage.getItem(LOG_STORAGE_KEY) || '[]');
+                const newLog = {
+                    timestamp: new Date().toISOString(),
+                    visitorId: vid || 'Unknown',
+                    result: isWin ? 'WIN' : 'LOSE',
+                    code: code || '-'
+                };
+                logs.unshift(newLog);
+                localStorage.setItem(LOG_STORAGE_KEY, JSON.stringify(logs));
+            } catch (e) { console.error(e); }
+        }
+
+        function toggleAdminPanel(show) {
+            const panel = document.getElementById('adminModal');
+            if (show) {
+                renderLogs();
+                panel.classList.remove('hidden');
+            } else {
+                panel.classList.add('hidden');
+            }
+        }
+
+        function renderLogs() {
+            const tbody = document.getElementById('logTableBody');
+            const noLogs = document.getElementById('noLogsMsg');
+            tbody.innerHTML = '';
+            
+            const logs = JSON.parse(localStorage.getItem(LOG_STORAGE_KEY) || '[]');
+            
+            if (logs.length === 0) {
+                noLogs.classList.remove('hidden');
+                return;
+            }
+            noLogs.classList.add('hidden');
+
+            logs.forEach(log => {
+                const date = new Date(log.timestamp).toLocaleString('th-TH');
+                const tr = document.createElement('tr');
+                tr.className = 'admin-row border-b border-slate-800/50';
+                
+                const winClass = log.result === 'WIN' ? 'text-green-400 font-bold' : 'text-red-400';
+                const codeClass = log.code !== '-' ? 'text-yellow-400 font-mono' : 'text-slate-600';
+
+                tr.innerHTML = `
+                    <td class="p-3 whitespace-nowrap text-slate-400">${date}</td>
+                    <td class="p-3 font-mono text-xs text-blue-300">${log.visitorId}</td>
+                    <td class="p-3 text-center ${winClass}">${log.result}</td>
+                    <td class="p-3 text-right ${codeClass}">${log.code}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+        
+        function clearLogs() {
+            if(confirm('ยืนยันล้างประวัติทั้งหมด?')) {
+                localStorage.removeItem(LOG_STORAGE_KEY);
+                renderLogs();
+            }
+        }
+
+        function exportLogs() {
+            const logs = JSON.parse(localStorage.getItem(LOG_STORAGE_KEY) || '[]');
+            if (logs.length === 0) { alert('ไม่มีข้อมูลให้ Export'); return; }
+            
+            let csvContent = "data:text/csv;charset=utf-8,Timestamp,VisitorID,Result,RewardCode\n";
+            logs.forEach(log => {
+                const row = `${log.timestamp},${log.visitorId},${log.result},${log.code}`;
+                csvContent += row + "\r\n";
+            });
+            
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "rps_nhanlor_logs.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Login Logic
+        const adminTrigger = document.getElementById('adminTrigger');
+        const loginModal = document.getElementById('adminLoginModal');
+        
+        adminTrigger.addEventListener('click', () => {
+            adminClickCount++;
+            clearTimeout(adminClickTimer);
+            adminClickTimer = setTimeout(() => { adminClickCount = 0; }, 1500);
+            if (adminClickCount >= 5) {
+                adminClickCount = 0;
+                clearTimeout(adminClickTimer);
+                loginModal.classList.remove('hidden');
+                document.getElementById('adminPasswordInput').focus();
+            }
+        });
+
+        document.getElementById('cancelLoginBtn').addEventListener('click', () => loginModal.classList.add('hidden'));
+        document.getElementById('confirmLoginBtn').addEventListener('click', () => {
+            const pwd = document.getElementById('adminPasswordInput');
+            if (pwd.value === 'admin') {
+                loginModal.classList.add('hidden');
+                toggleAdminPanel(true);
+                pwd.value = '';
+                document.getElementById('loginErrorMsg').classList.add('hidden');
+            } else {
+                document.getElementById('loginErrorMsg').classList.remove('hidden');
+            }
+        });
+
+        // --- Init ---
+        async function init() {
+            try {
+                const fp = await fpPromise;
+                const result = await fp.get();
+                visitorId = result.visitorId;
+            } catch (error) {
+                visitorId = 'visitor_' + Math.random().toString(36);
+            }
+
+            state.hasPlayed = localStorage.getItem(`${PLAYED_KEY_PREFIX}${visitorId}`) === 'true';
+
+            if (state.hasPlayed) {
+                const savedResult = JSON.parse(localStorage.getItem(`${RESULT_DATA_PREFIX}${visitorId}`));
+                if (savedResult) {
+                    showResultModal(savedResult.isWin, savedResult.code);
+                    toggleModal(false); // Close modal initially, let user click button
+                    document.getElementById('viewResultBtn').classList.remove('hidden');
+                    
+                    document.getElementById('gameArea').innerHTML = `
+                        <div class="glass-panel p-6 rounded-2xl text-center">
+                            <div class="text-6xl mb-4">${savedResult.isWin ? '🎉' : '🥀'}</div>
+                            <h3 class="text-xl font-bold mb-2 text-white">จบเกมแล้ว</h3>
+                            <p class="text-white/70 text-sm">ขอบคุณที่ร่วมสนุกกับร้านหนานหล่อ</p>
+                        </div>
+                    `;
+                }
+            } else {
+                state.canPlay = true;
+            }
+            lucide.createIcons();
+        }
+
+        // --- Helpers ---
+        function triggerConfetti() {
+            var duration = 3 * 1000;
+            var animationEnd = Date.now() + duration;
+            var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 60 };
+            function randomInRange(min, max) { return Math.random() * (max - min) + min; }
+            var interval = setInterval(function() {
+                var timeLeft = animationEnd - Date.now();
+                if (timeLeft <= 0) return clearInterval(interval);
+                var particleCount = 50 * (timeLeft / duration);
+                confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+                confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+            }, 250);
+        }
+
+        document.getElementById('viewResultBtn').addEventListener('click', () => toggleModal(true));
+        
+        // เพิ่มฟังก์ชันแตะพื้นหลังเพื่อปิด Modal
+        document.getElementById('resultModal').addEventListener('click', (e) => {
+            if (e.target.id === 'resultModal') toggleModal(false);
+        });
+
+        document.getElementById('soundToggle').addEventListener('click', () => {
+            state.soundEnabled = !state.soundEnabled;
+            document.getElementById('soundIcon').setAttribute('data-lucide', state.soundEnabled ? 'volume-2' : 'volume-x');
+            lucide.createIcons();
+        });
+
+        // Start
+        init();
+
+        tailwind.config = {
+            theme: {
+                extend: {
+                    animation: { blob: "blob 7s infinite" },
+                    keyframes: {
+                        blob: {
+                            "0%": { transform: "translate(0px, 0px) scale(1)" },
+                            "33%": { transform: "translate(30px, -50px) scale(1.1)" },
+                            "66%": { transform: "translate(-20px, 20px) scale(0.9)" },
+                            "100%": { transform: "translate(0px, 0px) scale(1)" },
+                        },
+                    },
+                },
+            },
+        }
+    </script>
+</body>
+</html>
