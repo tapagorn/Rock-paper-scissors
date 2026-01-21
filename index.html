@@ -19,6 +19,7 @@
 
     <!-- FingerprintJS -->
     <script>
+        // Load agent at startup
         const fpPromise = import('https://openfpcdn.io/fingerprintjs/v4')
             .then(FingerprintJS => FingerprintJS.load());
     </script>
@@ -98,15 +99,25 @@
         .emoji-xl { font-size: 4rem; line-height: 1; }
         .emoji-lg { font-size: 2.5rem; line-height: 1; }
         
-        /* Helper for cooldown inputs */
-        input[type=number]::-webkit-inner-spin-button, 
-        input[type=number]::-webkit-outer-spin-button { 
-            -webkit-appearance: none; 
-            margin: 0; 
+        .loading-dots:after {
+            content: ' .';
+            animation: dots 1s steps(5, end) infinite;
+        }
+        @keyframes dots {
+            0%, 20% { content: ' .'; }
+            40% { content: ' ..'; }
+            60% { content: ' ...'; }
+            80%, 100% { content: ' '; }
         }
     </style>
 </head>
 <body class="text-white select-none flex flex-col items-center justify-center relative p-4">
+
+    <!-- Loading Screen (Initial) -->
+    <div id="loadingScreen" class="fixed inset-0 z-[100] bg-blue-900 flex flex-col items-center justify-center">
+        <div class="w-16 h-16 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p class="text-yellow-200 animate-pulse font-bold loading-dots">กำลังเชื่อมต่อฐานข้อมูล</p>
+    </div>
 
     <!-- Header Section -->
     <header class="w-full max-w-md flex justify-between items-center mb-4 z-10">
@@ -257,30 +268,28 @@
                 </button>
             </div>
 
-            <!-- Admin Settings Section -->
+            <!-- Admin Settings Section (Read-Only) -->
             <div class="p-4 bg-slate-800/50 border-b border-slate-700">
                 <h3 class="font-bold text-white mb-3 flex items-center gap-2">
-                    <i data-lucide="settings" class="w-4 h-4 text-yellow-400"></i> ตั้งค่าการเล่นซ้ำ (Cooldown)
+                    <i data-lucide="cloud" class="w-4 h-4 text-cyan-400"></i> สถานะกติกาปัจจุบัน (จาก Google Sheet)
                 </h3>
-                <div class="flex flex-col md:flex-row gap-3 items-end">
-                    <div class="w-full md:w-auto">
-                        <label class="block text-xs text-slate-400 mb-1">โหมดการเล่นซ้ำ</label>
-                        <select id="adminCooldownType" class="bg-slate-700 text-white border border-slate-600 rounded px-3 py-2 text-sm w-full outline-none focus:border-blue-500" onchange="updateAdminUI()">
-                            <option value="none">เล่นได้ครั้งเดียว (ตลอดไป)</option>
-                            <option value="hour">ทุกๆ ... ชั่วโมง</option>
-                            <option value="day">ทุกๆ ... วัน</option>
-                        </select>
+                <div class="flex flex-wrap gap-4 items-center bg-black/20 p-3 rounded-lg border border-white/5">
+                    <div class="flex flex-col">
+                        <span class="text-xs text-slate-400 uppercase">โหมดการเล่นซ้ำ</span>
+                        <span id="displayConfigType" class="text-white font-bold text-lg">Loading...</span>
                     </div>
-                    <div id="adminCooldownValueContainer" class="w-full md:w-auto hidden">
-                        <label class="block text-xs text-slate-400 mb-1">จำนวนเวลา</label>
-                        <input type="number" id="adminCooldownValue" min="1" value="1" class="bg-slate-700 text-white border border-slate-600 rounded px-3 py-2 text-sm w-24 outline-none focus:border-blue-500 text-center">
+                    <div class="w-px h-8 bg-white/10"></div>
+                    <div class="flex flex-col">
+                        <span class="text-xs text-slate-400 uppercase">ระยะเวลา</span>
+                        <span id="displayConfigValue" class="text-yellow-400 font-mono text-lg">...</span>
                     </div>
-                    <button onclick="saveAdminSettings()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded text-sm font-bold shadow-lg transition-colors flex items-center gap-2">
-                        <i data-lucide="save" class="w-4 h-4"></i> บันทึกตั้งค่า
-                    </button>
-                    <span id="saveStatus" class="text-green-400 text-xs hidden">บันทึกเรียบร้อย!</span>
+                    <div class="ml-auto">
+                        <button onclick="fetchGlobalConfig()" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1.5 rounded text-white flex gap-1 transition-colors">
+                            <i data-lucide="refresh-cw" class="w-3 h-3"></i> อัปเดตข้อมูล
+                        </button>
+                    </div>
                 </div>
-                <p class="text-xs text-slate-500 mt-2">* การตั้งค่าจะมีผลกับผู้เล่นทุกคนทันทีตาม Visitor ID</p>
+                <p class="text-xs text-slate-500 mt-2">* หากต้องการเปลี่ยนกติกา ให้แก้ไขที่ Google Sheet หน้า "CONFIG"</p>
             </div>
 
             <!-- Admin Table -->
@@ -319,14 +328,15 @@
 
     <script>
         // --- Configuration ---
-        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwLMWFgQ27eusc73eF941Exkrrtq7RyG1IRkMKdjls0iiV20H24AdRCsZlV8ZolpBo3/exec';
+        // !!! สำคัญ: เปลี่ยน URL เป็นอันใหม่ที่ได้จากการ Deploy Web App ครั้งล่าสุด !!!
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwrInM6jZhE-2LRE-uH3-ADJ7evw-N20EHo45ywtGKUZP6HkwcXtufnzfrnoX1Z30xR/exec';
 
         // --- Keys ---
         const LOG_STORAGE_KEY = 'rps_nhanlor_logs';
-        const PLAYED_KEY_PREFIX = 'rps_nhanlor_played_'; // Legacy boolean
-        const LAST_PLAYED_KEY_PREFIX = 'rps_nhanlor_last_played_'; // New Timestamp
+        const PLAYED_KEY_PREFIX = 'rps_nhanlor_played_'; 
+        const LAST_PLAYED_KEY_PREFIX = 'rps_nhanlor_last_played_'; 
         const RESULT_DATA_PREFIX = 'rps_nhanlor_data_';
-        const CONFIG_KEY = 'rps_nhanlor_config'; // Store Admin Settings
+        const CONFIG_KEY = 'rps_nhanlor_config_cache'; // Store Config from Sheet
 
         // --- Global Variables ---
         let visitorId = null;
@@ -334,9 +344,9 @@
         let adminClickTimer = null;
         let countdownInterval = null;
 
-        // Default Config
+        // Default Config (Fallback if offline)
         let gameConfig = {
-            cooldownType: 'none', // 'none', 'hour', 'day'
+            cooldownType: 'none', 
             cooldownValue: 1
         };
 
@@ -389,6 +399,42 @@
             }
         }
 
+        // --- Logic: Fetch Global Config ---
+        async function fetchGlobalConfig() {
+            if (!GOOGLE_SCRIPT_URL.startsWith('http')) {
+                console.warn("Script URL not set, using local default");
+                loadCachedConfig();
+                return;
+            }
+
+            try {
+                // Fetch from Google Sheet (doGet)
+                const response = await fetch(GOOGLE_SCRIPT_URL);
+                const data = await response.json();
+
+                if (data.status === 'success' && data.config) {
+                    gameConfig = data.config;
+                    // Save to local cache so next refresh is faster or works offline
+                    localStorage.setItem(CONFIG_KEY, JSON.stringify(gameConfig));
+                    console.log("Config loaded from Cloud:", gameConfig);
+                }
+            } catch (error) {
+                console.error("Failed to fetch config, using cache:", error);
+                loadCachedConfig();
+            } finally {
+                // Update Admin UI text if open
+                updateAdminUI();
+            }
+        }
+
+        function loadCachedConfig() {
+            const cached = localStorage.getItem(CONFIG_KEY);
+            if (cached) {
+                gameConfig = JSON.parse(cached);
+                console.log("Config loaded from Cache:", gameConfig);
+            }
+        }
+
         // --- Logic: Cooldown System ---
         function checkCooldown() {
             // 1. Load Last Played Time
@@ -398,7 +444,7 @@
             // ถ้าไม่เคยเล่นเลย -> เล่นได้
             if (!lastPlayedStr && !legacyPlayed) return { allowed: true };
 
-            // ถ้า Admin ปิด Cooldown (เล่นได้ครั้งเดียว)
+            // ถ้า Config บอกว่าห้ามเล่นซ้ำ (none)
             if (gameConfig.cooldownType === 'none') {
                 return { allowed: false, reason: 'limit_reached' }; 
             }
@@ -633,42 +679,25 @@
 
         // --- Admin Functions ---
         function updateAdminUI() {
-            const type = document.getElementById('adminCooldownType').value;
-            const valContainer = document.getElementById('adminCooldownValueContainer');
-            if (type === 'none') {
-                valContainer.classList.add('hidden');
-            } else {
-                valContainer.classList.remove('hidden');
-            }
-        }
-
-        function saveAdminSettings() {
-            const type = document.getElementById('adminCooldownType').value;
-            const val = parseInt(document.getElementById('adminCooldownValue').value) || 1;
+            const displayType = document.getElementById('displayConfigType');
+            const displayValue = document.getElementById('displayConfigValue');
             
-            gameConfig = { cooldownType: type, cooldownValue: val };
-            localStorage.setItem(CONFIG_KEY, JSON.stringify(gameConfig));
+            let typeText = "เล่นได้ครั้งเดียว";
+            if(gameConfig.cooldownType === 'hour') typeText = "รายชั่วโมง";
+            if(gameConfig.cooldownType === 'day') typeText = "รายวัน";
             
-            const status = document.getElementById('saveStatus');
-            status.classList.remove('hidden');
-            setTimeout(() => status.classList.add('hidden'), 2000);
-        }
-
-        function loadAdminSettings() {
-            const saved = localStorage.getItem(CONFIG_KEY);
-            if (saved) {
-                gameConfig = JSON.parse(saved);
-                document.getElementById('adminCooldownType').value = gameConfig.cooldownType;
-                document.getElementById('adminCooldownValue').value = gameConfig.cooldownValue;
-                updateAdminUI();
-            }
+            displayType.textContent = typeText;
+            displayValue.textContent = gameConfig.cooldownType === 'none' ? '-' : gameConfig.cooldownValue;
+            
+            // Text color logic
+            displayType.className = `font-bold text-lg ${gameConfig.cooldownType === 'none' ? 'text-red-400' : 'text-green-400'}`;
         }
 
         function toggleAdminPanel(show) {
             const panel = document.getElementById('adminModal');
             if (show) {
-                loadAdminSettings();
                 renderLogs();
+                updateAdminUI(); // Show current global config
                 const gsStatus = document.getElementById('gsStatus');
                 const hasUrl = GOOGLE_SCRIPT_URL && GOOGLE_SCRIPT_URL.startsWith('http');
                 gsStatus.textContent = hasUrl ? 'เชื่อมแล้ว' : 'ไม่พบ URL';
@@ -739,42 +768,43 @@
         });
 
         async function init() {
+            // Show loading screen
+            const loadingScreen = document.getElementById('loadingScreen');
+
             try {
-                const fp = await fpPromise;
-                const result = await fp.get();
-                visitorId = result.visitorId;
-            } catch (e) { visitorId = 'visitor_' + Math.random().toString(36); }
+                // Parallel fetching: VisitorID and Config
+                const [fp, _] = await Promise.all([
+                    fpPromise.then(fp => fp.get()),
+                    fetchGlobalConfig() // Wait for config from sheet
+                ]);
+                visitorId = fp.visitorId;
+            } catch (e) {
+                console.error("Init Error:", e);
+                visitorId = 'visitor_' + Math.random().toString(36);
+            }
 
-            // Load Config
-            loadAdminSettings();
-
-            // Check Cooldown Status
+            // Check Cooldown Status based on Config
             const status = checkCooldown();
 
             if (status.allowed) {
-                // Allowed to play
                 state.canPlay = true;
                 state.hasPlayed = false;
                 document.getElementById('scoreboard').classList.remove('hidden');
                 document.getElementById('scoreboard').classList.add('flex');
             } else {
-                // Blocked
                 state.hasPlayed = true;
                 const savedResult = JSON.parse(localStorage.getItem(`${RESULT_DATA_PREFIX}${visitorId}`));
                 
-                // Hide game board controls
                 document.getElementById('controls').classList.add('hidden');
                 document.getElementById('statusText').classList.add('hidden');
                 document.getElementById('battleArena').classList.add('hidden');
                 document.getElementById('scoreboard').classList.add('hidden');
 
-                // Show cooldown message if mode is not none
                 if (gameConfig.cooldownType !== 'none' && status.nextPlayTime) {
                     document.getElementById('cooldownMsg').classList.remove('hidden');
                     startCountdown(status.nextPlayTime);
                 }
 
-                // Show previous result panel
                 if (savedResult) {
                     document.getElementById('viewResultBtn').classList.remove('hidden');
                     document.getElementById('gameArea').innerHTML += `
@@ -784,6 +814,11 @@
                         </div>`;
                 }
             }
+            
+            // Hide loading screen with fade out
+            loadingScreen.style.opacity = '0';
+            setTimeout(() => loadingScreen.remove(), 500);
+
             lucide.createIcons();
         }
 
