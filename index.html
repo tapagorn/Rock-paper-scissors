@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>เป่ายิ้งฉุบวัดดวง</title>
+    <title>หนานหล่อ - เป่ายิ้งฉุบวัดดวง</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -231,7 +231,12 @@
             <div class="p-4 bg-slate-800 border-b border-slate-700 flex justify-between items-center">
                 <div class="flex items-center gap-2">
                     <i data-lucide="database" class="text-blue-400"></i>
-                    <h2 class="font-bold text-lg text-white">ประวัติการเล่น <span class="text-xs text-slate-400 font-normal">(Local Storage)</span></h2>
+                    <div>
+                        <h2 class="font-bold text-lg text-white">ประวัติการเล่น</h2>
+                        <span id="syncStatus" class="text-xs text-slate-400 font-normal flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full bg-yellow-500"></span> Local Storage (เชื่อม Google Sheet: <span id="gsStatus">ไม่พบ URL</span>)
+                        </span>
+                    </div>
                 </div>
                 <div class="flex gap-2">
                     <button onclick="exportLogs()" class="px-3 py-1.5 bg-green-600 hover:bg-green-500 rounded text-xs font-semibold flex items-center gap-1 transition-colors text-white">
@@ -261,11 +266,11 @@
                         <!-- Rows injected here -->
                     </tbody>
                 </table>
-                <div id="noLogsMsg" class="hidden text-center text-slate-500 mt-10">ยังไม่มีประวัติการเล่น</div>
+                <div id="noLogsMsg" class="hidden text-center text-slate-500 mt-10">ยังไม่มีประวัติการเล่นในเครื่องนี้</div>
             </div>
             
             <div class="p-2 bg-slate-800 border-t border-slate-700 text-center text-xs text-slate-500">
-                ข้อมูลถูกบันทึกในเครื่องนี้เท่านั้น
+                หมายเหตุ: ตารางนี้แสดงข้อมูลในเครื่อง เพื่อดูข้อมูลทั้งหมดโปรดเช็คที่ Google Sheet
             </div>
         </div>
     </div>
@@ -278,6 +283,17 @@
     </div>
 
     <script>
+        // --- Configuration ---
+        // !!! สำคัญ: นำ URL ที่ได้จากขั้นตอน Deploy Web App มาวางในเครื่องหมายคำพูดด้านล่าง !!!
+        // ถ้าต้องการเก็บ UserAgent ลง Sheet ให้แก้โค้ด Apps Script เป็น:
+        // function doPost(e) {
+        //   var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+        //   var data = JSON.parse(e.postData.contents);
+        //   sheet.appendRow([new Date(), data.visitorId, data.result, data.code, data.userAgent]); // เพิ่ม data.userAgent
+        //   return ContentService.createTextOutput(JSON.stringify({"status":"success"})).setMimeType(ContentService.MimeType.JSON);
+        // }
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwLcjSAlCgsgaIg59JVfoJlfFR4gE1pP7pOHJKwUGw2b5Z13s9qsyknPw6N0IdVST_A/exec';
+
         // --- Global Variables ---
         let visitorId = null;
         let adminClickCount = 0;
@@ -555,23 +571,53 @@
 
         // --- Logging & Admin ---
         function logPlay(vid, isWin, code) {
+            // Get User Agent
+            const userAgent = navigator.userAgent;
+
+            // 1. เก็บในเครื่องเหมือนเดิม (เพื่อให้หน้า Admin ในเกมยังพอดูได้คร่าวๆ)
             try {
                 const logs = JSON.parse(localStorage.getItem(LOG_STORAGE_KEY) || '[]');
                 const newLog = {
                     timestamp: new Date().toISOString(),
                     visitorId: vid || 'Unknown',
                     result: isWin ? 'WIN' : 'LOSE',
-                    code: code || '-'
+                    code: code || '-',
+                    userAgent: userAgent // บันทึก User Agent ลง Local Storage
                 };
                 logs.unshift(newLog);
                 localStorage.setItem(LOG_STORAGE_KEY, JSON.stringify(logs));
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error('Local log error', e); }
+
+            // 2. ส่งไป Google Sheets (ถ้ามี URL)
+            if (GOOGLE_SCRIPT_URL && GOOGLE_SCRIPT_URL.startsWith('http')) {
+                // ใช้ mode: 'no-cors' เพื่อยิงข้อมูลข้ามโดเมนได้โดยไม่ติด Browser Policy
+                // (ข้อเสีย: เราจะไม่รู้ว่าสำเร็จหรือไม่ผ่าน response text แต่ข้อมูลจะเข้า Sheet ปกติ)
+                fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', 
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        visitorId: vid || 'Unknown',
+                        result: isWin ? 'WIN' : 'LOSE',
+                        code: code || '-',
+                        userAgent: userAgent // ส่ง User Agent ไปที่ Sheet
+                    })
+                }).catch(err => console.error('Error logging to sheet', err));
+            }
         }
 
         function toggleAdminPanel(show) {
             const panel = document.getElementById('adminModal');
             if (show) {
                 renderLogs();
+                // Update Sync Status UI
+                const gsStatus = document.getElementById('gsStatus');
+                const hasUrl = GOOGLE_SCRIPT_URL && GOOGLE_SCRIPT_URL.startsWith('http');
+                gsStatus.textContent = hasUrl ? 'เชื่อมต่อแล้ว' : 'ไม่พบ URL';
+                gsStatus.className = hasUrl ? 'text-green-400 font-bold' : 'text-red-400';
+                
                 panel.classList.remove('hidden');
             } else {
                 panel.classList.add('hidden');
@@ -599,6 +645,7 @@
                 const winClass = log.result === 'WIN' ? 'text-green-400 font-bold' : 'text-red-400';
                 const codeClass = log.code !== '-' ? 'text-yellow-400 font-mono' : 'text-slate-600';
 
+                // ไม่แสดง User Agent ในตารางเพราะจะทำให้รกเกินไป แต่จะ Export ออกมาได้
                 tr.innerHTML = `
                     <td class="p-3 whitespace-nowrap text-slate-400">${date}</td>
                     <td class="p-3 font-mono text-xs text-blue-300">${log.visitorId}</td>
@@ -610,7 +657,7 @@
         }
         
         function clearLogs() {
-            if(confirm('ยืนยันล้างประวัติทั้งหมด?')) {
+            if(confirm('ยืนยันล้างประวัติในเครื่องนี้? (ข้อมูลบน Sheet จะไม่หาย)')) {
                 localStorage.removeItem(LOG_STORAGE_KEY);
                 renderLogs();
             }
@@ -620,16 +667,19 @@
             const logs = JSON.parse(localStorage.getItem(LOG_STORAGE_KEY) || '[]');
             if (logs.length === 0) { alert('ไม่มีข้อมูลให้ Export'); return; }
             
-            let csvContent = "data:text/csv;charset=utf-8,Timestamp,VisitorID,Result,RewardCode\n";
+            // เพิ่ม Header "UserAgent" ใน CSV
+            let csvContent = "data:text/csv;charset=utf-8,Timestamp,VisitorID,Result,RewardCode,UserAgent\n";
             logs.forEach(log => {
-                const row = `${log.timestamp},${log.visitorId},${log.result},${log.code}`;
+                // เพิ่มข้อมูล User Agent ต่อท้าย (ใส่ quote ครอบเพื่อป้องกัน comma ใน user agent string)
+                const ua = log.userAgent ? `"${log.userAgent.replace(/"/g, '""')}"` : "";
+                const row = `${log.timestamp},${log.visitorId},${log.result},${log.code},${ua}`;
                 csvContent += row + "\r\n";
             });
             
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
             link.setAttribute("href", encodedUri);
-            link.setAttribute("download", "rps_nhanlor_logs.csv");
+            link.setAttribute("download", "rps_nhanlor_logs_with_ua.csv");
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
