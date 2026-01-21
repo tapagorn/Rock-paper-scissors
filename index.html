@@ -26,7 +26,7 @@
     <style>
         body {
             font-family: 'Poppins', 'Sarabun', sans-serif;
-            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #60a5fa 100%); /* Blue theme for change */
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #60a5fa 100%);
             height: 100vh;
             overflow: hidden;
             touch-action: manipulation;
@@ -66,15 +66,12 @@
             filter: grayscale(1);
         }
 
-        /* Game Specific Animations */
+        /* Animations */
         @keyframes bounce-hand {
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-20px); }
         }
-
-        .animate-bounce-hand {
-            animation: bounce-hand 0.5s infinite;
-        }
+        .animate-bounce-hand { animation: bounce-hand 0.5s infinite; }
 
         @keyframes shake {
             0% { transform: rotate(0deg); }
@@ -83,19 +80,13 @@
             75% { transform: rotate(15deg); }
             100% { transform: rotate(0deg); }
         }
-
-        .shake-hand {
-            animation: shake 0.5s ease-in-out infinite;
-        }
+        .shake-hand { animation: shake 0.5s ease-in-out infinite; }
 
         @keyframes popIn {
             0% { transform: scale(0.5); opacity: 0; }
             100% { transform: scale(1); opacity: 1; }
         }
-
-        .modal-enter {
-            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-        }
+        .modal-enter { animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
 
         /* Admin Styles */
         .admin-row:nth-child(even) { background-color: rgba(255, 255, 255, 0.05); }
@@ -104,9 +95,15 @@
         .custom-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
         .custom-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 3px; }
 
-        /* Emoji Text Helper */
         .emoji-xl { font-size: 4rem; line-height: 1; }
         .emoji-lg { font-size: 2.5rem; line-height: 1; }
+        
+        /* Helper for cooldown inputs */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
     </style>
 </head>
 <body class="text-white select-none flex flex-col items-center justify-center relative p-4">
@@ -135,7 +132,7 @@
             <p class="text-white/80 text-sm md:text-base font-light">กติกา: ชนะ 2 ใน 3 เพื่อรับรางวัล</p>
         </div>
 
-        <!-- Scoreboard (New Feature) -->
+        <!-- Scoreboard -->
         <div id="scoreboard" class="w-full max-w-xs mb-4 flex justify-between items-center px-6 py-2 bg-white/10 rounded-full backdrop-blur-sm border border-white/10 hidden">
             <div class="flex flex-col items-center">
                 <span class="text-xs opacity-70">คุณ</span>
@@ -150,19 +147,26 @@
             </div>
         </div>
 
+        <!-- Cooldown / Limit Message (Shows when blocked) -->
+        <div id="cooldownMsg" class="hidden w-full max-w-md bg-red-500/20 border border-red-500/50 rounded-xl p-4 text-center mb-6 backdrop-blur-sm">
+            <i data-lucide="clock" class="w-8 h-8 mx-auto mb-2 text-red-300"></i>
+            <h3 class="text-lg font-bold text-red-100">ยังไม่ถึงเวลาเล่นรอบถัดไป</h3>
+            <p class="text-sm text-red-200/80 mb-2">กรุณารอสักครู่แล้วกลับมาใหม่</p>
+            <div id="countdownTimer" class="text-xl font-mono font-bold text-white bg-black/30 inline-block px-3 py-1 rounded-lg">
+                --:--:--
+            </div>
+        </div>
+
         <!-- Game Area -->
         <div id="gameArea" class="w-full transition-opacity duration-500">
-            
-            <!-- Result Display (Hidden initially) -->
+            <!-- Battle Arena -->
             <div id="battleArena" class="hidden h-48 mb-6 relative flex justify-center items-center gap-8">
                 <div class="text-center transform transition-all duration-300" id="playerHandDisplay">
                     <div class="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center border-4 border-blue-400 shadow-lg glass-panel transition-all" id="pHandBorder">
                         <span class="emoji-xl" id="playerEmoji">✊</span>
                     </div>
                 </div>
-
                 <div class="text-2xl font-black text-yellow-400 italic absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20 drop-shadow-lg">VS</div>
-
                 <div class="text-center transform transition-all duration-300" id="cpuHandDisplay">
                     <div class="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center border-4 border-red-400 shadow-lg glass-panel transition-all" id="cHandBorder">
                         <span class="emoji-xl" id="cpuEmoji">✊</span>
@@ -189,7 +193,7 @@
             <div id="statusText" class="text-center h-8 font-bold text-yellow-200 text-lg animate-pulse">เลือกอาวุธของคุณ!</div>
         </div>
 
-        <!-- View Result Button (Shown if already played) -->
+        <!-- View Result Button -->
         <button id="viewResultBtn" class="hidden w-full max-w-xs mx-auto py-3 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30 text-white font-semibold transition-all shadow-lg active:scale-95 mb-4 flex items-center justify-center gap-2">
             <i data-lucide="eye" class="w-5 h-5"></i>
             ดูผลรางวัลของคุณ
@@ -206,17 +210,14 @@
             <div id="modalIconContainer" class="mx-auto w-24 h-24 rounded-full flex items-center justify-center mb-4 shadow-xl border-4 border-white/20">
                 <span id="modalEmoji" class="text-5xl">🏆</span>
             </div>
-
             <h2 id="modalTitle" class="text-3xl font-extrabold mb-2 tracking-tight">You Won!</h2>
             <p id="modalMessage" class="text-white/80 mb-6 font-light">Congratulations!</p>
-
             <div id="rewardSection" class="hidden mb-6 bg-black/20 rounded-xl p-4 border border-white/10">
                 <p class="text-xs text-white/50 uppercase tracking-widest mb-2">แคปหน้าจอนี้เพื่อรับรางวัล</p>
                 <div class="bg-white/10 rounded-lg p-2 backdrop-blur-md">
                     <code class="text-2xl font-mono text-yellow-300 font-bold select-all tracking-wider" id="rewardCode">Waiting...</code>
                 </div>
             </div>
-
             <button id="closeModalBtn" onclick="toggleModal(false)" class="hidden w-full py-3 rounded-xl bg-white/10 hover:bg-white/20 mb-2 transition-colors">ปิดหน้าต่าง</button>
         </div>
     </div>
@@ -239,7 +240,7 @@
 
     <!-- Admin Panel Modal -->
     <div id="adminModal" class="fixed inset-0 z-[60] flex items-center justify-center hidden bg-black/90 backdrop-blur-xl">
-        <div class="w-11/12 max-w-4xl h-[85vh] bg-slate-900 border border-slate-700 rounded-2xl flex flex-col shadow-2xl overflow-hidden text-sm">
+        <div class="w-11/12 max-w-4xl h-[90vh] bg-slate-900 border border-slate-700 rounded-2xl flex flex-col shadow-2xl overflow-hidden text-sm">
             <!-- Admin Header -->
             <div class="p-4 bg-slate-800 border-b border-slate-700 flex justify-between items-center">
                 <div class="flex items-center gap-2">
@@ -247,25 +248,50 @@
                     <div>
                         <h2 class="font-bold text-lg text-white">ประวัติการเล่น</h2>
                         <span id="syncStatus" class="text-xs text-slate-400 font-normal flex items-center gap-1">
-                            <span class="w-2 h-2 rounded-full bg-yellow-500"></span> Local Storage (เชื่อม Google Sheet: <span id="gsStatus">ไม่พบ URL</span>)
+                            <span class="w-2 h-2 rounded-full bg-yellow-500"></span> LocalStorage (Sync: <span id="gsStatus">...</span>)
                         </span>
                     </div>
                 </div>
-                <div class="flex gap-2">
-                    <button onclick="exportLogs()" class="px-3 py-1.5 bg-green-600 hover:bg-green-500 rounded text-xs font-semibold flex items-center gap-1 transition-colors text-white">
-                        <i data-lucide="download" class="w-3 h-3"></i> CSV
+                <button onclick="toggleAdminPanel(false)" class="p-1.5 hover:bg-white/10 rounded-full transition-colors">
+                    <i data-lucide="x" class="w-5 h-5 text-slate-400"></i>
+                </button>
+            </div>
+
+            <!-- Admin Settings Section -->
+            <div class="p-4 bg-slate-800/50 border-b border-slate-700">
+                <h3 class="font-bold text-white mb-3 flex items-center gap-2">
+                    <i data-lucide="settings" class="w-4 h-4 text-yellow-400"></i> ตั้งค่าการเล่นซ้ำ (Cooldown)
+                </h3>
+                <div class="flex flex-col md:flex-row gap-3 items-end">
+                    <div class="w-full md:w-auto">
+                        <label class="block text-xs text-slate-400 mb-1">โหมดการเล่นซ้ำ</label>
+                        <select id="adminCooldownType" class="bg-slate-700 text-white border border-slate-600 rounded px-3 py-2 text-sm w-full outline-none focus:border-blue-500" onchange="updateAdminUI()">
+                            <option value="none">เล่นได้ครั้งเดียว (ตลอดไป)</option>
+                            <option value="hour">ทุกๆ ... ชั่วโมง</option>
+                            <option value="day">ทุกๆ ... วัน</option>
+                        </select>
+                    </div>
+                    <div id="adminCooldownValueContainer" class="w-full md:w-auto hidden">
+                        <label class="block text-xs text-slate-400 mb-1">จำนวนเวลา</label>
+                        <input type="number" id="adminCooldownValue" min="1" value="1" class="bg-slate-700 text-white border border-slate-600 rounded px-3 py-2 text-sm w-24 outline-none focus:border-blue-500 text-center">
+                    </div>
+                    <button onclick="saveAdminSettings()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded text-sm font-bold shadow-lg transition-colors flex items-center gap-2">
+                        <i data-lucide="save" class="w-4 h-4"></i> บันทึกตั้งค่า
                     </button>
-                    <button onclick="clearLogs()" class="px-3 py-1.5 bg-red-600 hover:bg-red-500 rounded text-xs font-semibold flex items-center gap-1 transition-colors text-white">
-                        <i data-lucide="trash-2" class="w-3 h-3"></i> ล้าง
-                    </button>
-                    <button onclick="toggleAdminPanel(false)" class="ml-2 p-1.5 hover:bg-white/10 rounded-full transition-colors">
-                        <i data-lucide="x" class="w-5 h-5 text-slate-400"></i>
-                    </button>
+                    <span id="saveStatus" class="text-green-400 text-xs hidden">บันทึกเรียบร้อย!</span>
                 </div>
+                <p class="text-xs text-slate-500 mt-2">* การตั้งค่าจะมีผลกับผู้เล่นทุกคนทันทีตาม Visitor ID</p>
             </div>
 
             <!-- Admin Table -->
             <div class="flex-1 overflow-auto custom-scroll p-4">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="font-bold text-slate-300">รายการล่าสุด</h3>
+                    <div class="flex gap-2">
+                        <button onclick="exportLogs()" class="px-2 py-1 bg-green-600/80 hover:bg-green-500 rounded text-xs text-white flex gap-1"><i data-lucide="download" class="w-3 h-3"></i> CSV</button>
+                        <button onclick="clearLogs()" class="px-2 py-1 bg-red-600/80 hover:bg-red-500 rounded text-xs text-white flex gap-1"><i data-lucide="trash-2" class="w-3 h-3"></i> Clear</button>
+                    </div>
+                </div>
                 <table class="w-full text-left border-collapse">
                     <thead class="sticky top-0 bg-slate-900 z-10 shadow-md">
                         <tr class="text-slate-400 text-xs uppercase tracking-wider">
@@ -281,10 +307,6 @@
                 </table>
                 <div id="noLogsMsg" class="hidden text-center text-slate-500 mt-10">ยังไม่มีประวัติการเล่นในเครื่องนี้</div>
             </div>
-            
-            <div class="p-2 bg-slate-800 border-t border-slate-700 text-center text-xs text-slate-500">
-                หมายเหตุ: ตารางนี้แสดงข้อมูลในเครื่อง เพื่อดูข้อมูลทั้งหมดโปรดเช็คที่ Google Sheet
-            </div>
         </div>
     </div>
 
@@ -297,29 +319,25 @@
 
     <script>
         // --- Configuration ---
-        // !!! สำคัญ: นำ URL ที่ได้จากขั้นตอน Deploy Web App มาวางในเครื่องหมายคำพูดด้านล่าง !!!
         const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwLMWFgQ27eusc73eF941Exkrrtq7RyG1IRkMKdjls0iiV20H24AdRCsZlV8ZolpBo3/exec';
+
+        // --- Keys ---
+        const LOG_STORAGE_KEY = 'rps_nhanlor_logs';
+        const PLAYED_KEY_PREFIX = 'rps_nhanlor_played_'; // Legacy boolean
+        const LAST_PLAYED_KEY_PREFIX = 'rps_nhanlor_last_played_'; // New Timestamp
+        const RESULT_DATA_PREFIX = 'rps_nhanlor_data_';
+        const CONFIG_KEY = 'rps_nhanlor_config'; // Store Admin Settings
 
         // --- Global Variables ---
         let visitorId = null;
         let adminClickCount = 0;
         let adminClickTimer = null;
+        let countdownInterval = null;
 
-        const LOG_STORAGE_KEY = 'rps_nhanlor_logs';
-        const PLAYED_KEY_PREFIX = 'rps_nhanlor_played_';
-        const RESULT_DATA_PREFIX = 'rps_nhanlor_data_';
-
-        // Game Configuration
-        const OPTIONS = ['rock', 'paper', 'scissors'];
-        const EMOJIS = {
-            'rock': '✊',
-            'paper': '✋',
-            'scissors': '✌️'
-        };
-        const THAI_NAMES = {
-            'rock': 'ค้อน',
-            'paper': 'กระดาษ',
-            'scissors': 'กรรไกร'
+        // Default Config
+        let gameConfig = {
+            cooldownType: 'none', // 'none', 'hour', 'day'
+            cooldownValue: 1
         };
 
         const state = {
@@ -327,26 +345,15 @@
             soundEnabled: true,
             hasPlayed: false,
             canPlay: true,
-            // เพิ่มระบบคะแนน
             pScore: 0,
             cScore: 0
         };
-        
-        const losingMessages = [
-            "แพ้ซะแล้ว! ไม่เป็นไรนะ",
-            "เสียใจด้วย ดวงยังไม่มา",
-            "โดนกินเรียบ! ลองใหม่โอกาสหน้า",
-            "ว้าาา... พลาดไปนิดเดียว",
-            "หนานหล่อชนะ! ไว้มาแก้มือนะ"
-        ];
 
-        const winningMessages = [
-            "สุดยอด! คุณชนะรับรางวัลเลย",
-            "ดวงดีมาก! เอาไปเลยรางวัลใหญ่",
-            "เก่งมาก! หนานหล่อยอมแพ้",
-            "ยินดีด้วย! แคปจอรับของรางวัลด่วน",
-            "Winner! คุณคือผู้โชคดีวันนี้"
-        ];
+        const OPTIONS = ['rock', 'paper', 'scissors'];
+        const EMOJIS = {'rock': '✊', 'paper': '✋', 'scissors': '✌️'};
+        const THAI_NAMES = {'rock': 'ค้อน', 'paper': 'กระดาษ', 'scissors': 'กรรไกร'};
+        const losingMessages = ["แพ้ซะแล้ว!", "เสียใจด้วย!", "โดนกินเรียบ!", "ว้าาา... พลาด", "หนานหล่อชนะ!"];
+        const winningMessages = ["สุดยอด! ชนะแล้ว", "ดวงดีมาก!", "เก่งมาก!", "ยินดีด้วย!", "Winner!"];
 
         function generateRewardCode() {
           return 'WIN-' + Math.random().toString(36).substring(2, 7).toUpperCase();
@@ -354,54 +361,96 @@
 
         // --- Audio Engine ---
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        
         function playTone(type) {
             if (!state.soundEnabled) return;
             if (audioCtx.state === 'suspended') audioCtx.resume();
-
             const osc = audioCtx.createOscillator();
             const gainNode = audioCtx.createGain();
-            
             osc.connect(gainNode);
             gainNode.connect(audioCtx.destination);
             const now = audioCtx.currentTime;
 
             if (type === 'click') {
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(800, now);
+                osc.type = 'sine'; osc.frequency.setValueAtTime(800, now);
                 osc.frequency.exponentialRampToValueAtTime(300, now + 0.1);
-                gainNode.gain.setValueAtTime(0.3, now);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-                osc.start(now);
-                osc.stop(now + 0.1);
-            } else if (type === 'count') {
-                osc.type = 'square';
-                osc.frequency.setValueAtTime(440, now);
-                gainNode.gain.setValueAtTime(0.1, now);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-                osc.start(now);
-                osc.stop(now + 0.1);
+                gainNode.gain.setValueAtTime(0.3, now); gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now); osc.stop(now + 0.1);
             } else if (type === 'win') {
-                osc.type = 'triangle';
-                // Victory Fanfare
-                osc.frequency.setValueAtTime(523.25, now); // C5
-                osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
-                osc.frequency.setValueAtTime(783.99, now + 0.2); // G5
-                osc.frequency.setValueAtTime(1046.50, now + 0.3); // C6
-                gainNode.gain.setValueAtTime(0, now);
-                gainNode.gain.linearRampToValueAtTime(0.3, now + 0.1);
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(523.25, now);
+                osc.frequency.setValueAtTime(783.99, now + 0.2);
+                gainNode.gain.setValueAtTime(0, now); gainNode.gain.linearRampToValueAtTime(0.3, now + 0.1);
                 gainNode.gain.exponentialRampToValueAtTime(0.01, now + 1.5);
-                osc.start(now);
-                osc.stop(now + 1.5);
+                osc.start(now); osc.stop(now + 1.5);
             } else if (type === 'lose') {
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(150, now);
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now);
                 osc.frequency.linearRampToValueAtTime(100, now + 0.4);
-                gainNode.gain.setValueAtTime(0.3, now);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
-                osc.start(now);
-                osc.stop(now + 0.5);
+                gainNode.gain.setValueAtTime(0.3, now); gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                osc.start(now); osc.stop(now + 0.5);
             }
+        }
+
+        // --- Logic: Cooldown System ---
+        function checkCooldown() {
+            // 1. Load Last Played Time
+            const lastPlayedStr = localStorage.getItem(`${LAST_PLAYED_KEY_PREFIX}${visitorId}`);
+            const legacyPlayed = localStorage.getItem(`${PLAYED_KEY_PREFIX}${visitorId}`) === 'true';
+
+            // ถ้าไม่เคยเล่นเลย -> เล่นได้
+            if (!lastPlayedStr && !legacyPlayed) return { allowed: true };
+
+            // ถ้า Admin ปิด Cooldown (เล่นได้ครั้งเดียว)
+            if (gameConfig.cooldownType === 'none') {
+                return { allowed: false, reason: 'limit_reached' }; 
+            }
+
+            // ถ้ามี Config แต่ไม่มี timestamp (เป็น user เก่า) -> ให้เล่นได้เพื่อเริ่มนับเวลาใหม่
+            if (!lastPlayedStr && legacyPlayed) {
+                return { allowed: true }; 
+            }
+
+            const lastPlayed = parseInt(lastPlayedStr);
+            const now = Date.now();
+            let cooldownMs = 0;
+
+            if (gameConfig.cooldownType === 'hour') {
+                cooldownMs = gameConfig.cooldownValue * 60 * 60 * 1000;
+            } else if (gameConfig.cooldownType === 'day') {
+                cooldownMs = gameConfig.cooldownValue * 24 * 60 * 60 * 1000;
+            }
+
+            const nextPlayTime = lastPlayed + cooldownMs;
+
+            if (now >= nextPlayTime) {
+                return { allowed: true };
+            } else {
+                return { allowed: false, reason: 'cooldown', nextPlayTime: nextPlayTime };
+            }
+        }
+
+        function startCountdown(targetTime) {
+            const timerEl = document.getElementById('countdownTimer');
+            if (countdownInterval) clearInterval(countdownInterval);
+
+            function update() {
+                const now = Date.now();
+                const diff = targetTime - now;
+
+                if (diff <= 0) {
+                    clearInterval(countdownInterval);
+                    location.reload(); // Refresh to reset state
+                    return;
+                }
+
+                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+                timerEl.textContent = 
+                    `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+
+            update();
+            countdownInterval = setInterval(update, 1000);
         }
 
         // --- Core Game Logic ---
@@ -409,64 +458,48 @@
             if (!state.canPlay || state.hasPlayed) return;
             state.canPlay = false;
 
-            // UI Update
             playTone('click');
             document.getElementById('controls').classList.add('opacity-50', 'pointer-events-none');
             const battleArena = document.getElementById('battleArena');
-            const playerHandDisplay = document.getElementById('playerHandDisplay');
-            const cpuHandDisplay = document.getElementById('cpuHandDisplay');
-            const playerEmoji = document.getElementById('playerEmoji');
-            const cpuEmoji = document.getElementById('cpuEmoji');
             const statusText = document.getElementById('statusText');
             
-            // Reset Border color each round
-            document.getElementById('pHandBorder').className = "w-24 h-24 bg-white/10 rounded-full flex items-center justify-center border-4 border-blue-400 shadow-lg glass-panel transition-all";
-            document.getElementById('cHandBorder').className = "w-24 h-24 bg-white/10 rounded-full flex items-center justify-center border-4 border-red-400 shadow-lg glass-panel transition-all";
-
-            // Show Arena & Scoreboard
             battleArena.classList.remove('hidden');
             battleArena.classList.add('flex');
             document.getElementById('scoreboard').classList.remove('hidden');
             document.getElementById('scoreboard').classList.add('flex');
-            
-            // Animation Loop (Shaking)
+
+            // Shaking Animation
             let count = 0;
             statusText.textContent = "เป่า...";
-            playerEmoji.textContent = "✊";
-            cpuEmoji.textContent = "✊";
-            
-            // Add shake classes
-            playerHandDisplay.classList.add('shake-hand');
-            cpuHandDisplay.classList.add('shake-hand');
+            document.getElementById('playerEmoji').textContent = "✊";
+            document.getElementById('cpuEmoji').textContent = "✊";
+            document.getElementById('playerHandDisplay').classList.add('shake-hand');
+            document.getElementById('cpuHandDisplay').classList.add('shake-hand');
+            document.getElementById('pHandBorder').className = "w-24 h-24 bg-white/10 rounded-full flex items-center justify-center border-4 border-blue-400 shadow-lg glass-panel transition-all";
+            document.getElementById('cHandBorder').className = "w-24 h-24 bg-white/10 rounded-full flex items-center justify-center border-4 border-red-400 shadow-lg glass-panel transition-all";
 
             const shuffleInterval = setInterval(() => {
                 count++;
-                playTone('count');
                 if (count === 1) statusText.textContent = "ยิ้ง...";
                 if (count === 2) statusText.textContent = "ฉุบ!";
             }, 600);
 
-            // Wait for animation
             await new Promise(r => setTimeout(r, 1800));
             clearInterval(shuffleInterval);
 
-            // Remove shake
-            playerHandDisplay.classList.remove('shake-hand');
-            cpuHandDisplay.classList.remove('shake-hand');
+            document.getElementById('playerHandDisplay').classList.remove('shake-hand');
+            document.getElementById('cpuHandDisplay').classList.remove('shake-hand');
 
-            // Determine Result
+            // Result
             const cpuChoice = OPTIONS[Math.floor(Math.random() * OPTIONS.length)];
+            document.getElementById('playerEmoji').textContent = EMOJIS[playerChoice];
+            document.getElementById('cpuEmoji').textContent = EMOJIS[cpuChoice];
             
-            // Set Emojis
-            playerEmoji.textContent = EMOJIS[playerChoice];
-            cpuEmoji.textContent = EMOJIS[cpuChoice];
-
-            // Add bounce effect for reveal
-            playerHandDisplay.classList.add('animate-bounce-hand');
-            cpuHandDisplay.classList.add('animate-bounce-hand');
+            document.getElementById('playerHandDisplay').classList.add('animate-bounce-hand');
+            document.getElementById('cpuHandDisplay').classList.add('animate-bounce-hand');
             setTimeout(() => {
-                playerHandDisplay.classList.remove('animate-bounce-hand');
-                cpuHandDisplay.classList.remove('animate-bounce-hand');
+                document.getElementById('playerHandDisplay').classList.remove('animate-bounce-hand');
+                document.getElementById('cpuHandDisplay').classList.remove('animate-bounce-hand');
             }, 500);
 
             const result = getResult(playerChoice, cpuChoice);
@@ -474,63 +507,51 @@
             if (result === 'draw') {
                 statusText.textContent = `เสมอ!`;
                 statusText.className = "text-center h-8 font-bold text-white text-lg";
-                setTimeout(() => nextRound(false), 1500);
+                setTimeout(() => nextRound(), 1500);
             } else if (result === 'win') {
                 state.pScore++;
                 updateScoreBoard();
                 document.getElementById('pHandBorder').classList.replace('border-blue-400', 'border-green-400');
                 statusText.textContent = "คุณชนะรอบนี้!";
                 statusText.className = "text-center h-8 font-bold text-green-400 text-lg";
-                
-                if (state.pScore >= 2) {
-                    setTimeout(() => finalizeGame(true), 1500);
-                } else {
-                    setTimeout(() => nextRound(true), 1500);
-                }
+                if (state.pScore >= 2) setTimeout(() => finalizeGame(true), 1500);
+                else setTimeout(() => nextRound(), 1500);
             } else {
                 state.cScore++;
                 updateScoreBoard();
-                document.getElementById('cHandBorder').classList.replace('border-red-400', 'border-green-400'); // Winner border
+                document.getElementById('cHandBorder').classList.replace('border-red-400', 'border-green-400');
                 statusText.textContent = "หนานหล่อชนะรอบนี้!";
                 statusText.className = "text-center h-8 font-bold text-red-400 text-lg";
-
-                if (state.cScore >= 2) {
-                    setTimeout(() => finalizeGame(false), 1500);
-                } else {
-                    setTimeout(() => nextRound(true), 1500);
-                }
+                if (state.cScore >= 2) setTimeout(() => finalizeGame(false), 1500);
+                else setTimeout(() => nextRound(), 1500);
             }
         }
 
         function updateScoreBoard() {
             document.getElementById('pScore').textContent = state.pScore;
             document.getElementById('cScore').textContent = state.cScore;
-            
-            // Effect on change
             const sb = document.getElementById('scoreboard');
             sb.classList.add('scale-110');
             setTimeout(() => sb.classList.remove('scale-110'), 200);
         }
 
-        function nextRound(scoreChanged) {
+        function nextRound() {
             state.canPlay = true;
             document.getElementById('controls').classList.remove('opacity-50', 'pointer-events-none');
-            // Don't hide arena completely, just prompt next move
-            // But reset emojis to rocks for next visual cue? Or keep last result?
-            // Let's reset to make it clear new round starts
             document.getElementById('playerEmoji').textContent = "✊";
             document.getElementById('cpuEmoji').textContent = "✊";
             document.getElementById('pHandBorder').className = "w-24 h-24 bg-white/10 rounded-full flex items-center justify-center border-4 border-blue-400 shadow-lg glass-panel transition-all";
             document.getElementById('cHandBorder').className = "w-24 h-24 bg-white/10 rounded-full flex items-center justify-center border-4 border-red-400 shadow-lg glass-panel transition-all";
-            
             document.getElementById('statusText').textContent = "รอบต่อไป... เลือกอาวุธ!";
             document.getElementById('statusText').className = "text-center h-8 font-bold text-yellow-200 text-lg animate-pulse";
         }
 
         function finalizeGame(isWin) {
             state.hasPlayed = true;
+            // Record Timestamp for Cooldown
             localStorage.setItem(`${PLAYED_KEY_PREFIX}${visitorId}`, 'true');
-            
+            localStorage.setItem(`${LAST_PLAYED_KEY_PREFIX}${visitorId}`, Date.now().toString());
+
             const statusText = document.getElementById('statusText');
             
             if (isWin) {
@@ -552,308 +573,232 @@
 
         function getResult(p, c) {
             if (p === c) return 'draw';
-            if ((p === 'rock' && c === 'scissors') ||
-                (p === 'paper' && c === 'rock') ||
-                (p === 'scissors' && c === 'paper')) {
-                return 'win';
-            }
+            if ((p === 'rock' && c === 'scissors') || (p === 'paper' && c === 'rock') || (p === 'scissors' && c === 'paper')) return 'win';
             return 'lose';
         }
 
         function showResultModal(isWin, code) {
-            const modal = document.getElementById('resultModal');
-            const modalCard = document.getElementById('modalCard');
-            const modalIconContainer = document.getElementById('modalIconContainer');
-            const modalEmoji = document.getElementById('modalEmoji');
-            const modalTitle = document.getElementById('modalTitle');
-            const modalMessage = document.getElementById('modalMessage');
-            const rewardSection = document.getElementById('rewardSection');
-            const rewardCodeElement = document.getElementById('rewardCode');
-            const viewResultBtn = document.getElementById('viewResultBtn');
-
-            // Save result to storage
-            const resultData = {
-                isWin: isWin,
-                code: code,
-                timestamp: new Date().toISOString()
-            };
+            const resultData = { isWin, code, timestamp: new Date().toISOString() };
             localStorage.setItem(`${RESULT_DATA_PREFIX}${visitorId}`, JSON.stringify(resultData));
 
+            const modal = document.getElementById('resultModal');
+            const icon = document.getElementById('modalIconContainer');
+            const title = document.getElementById('modalTitle');
+            const msg = document.getElementById('modalMessage');
+            const reward = document.getElementById('rewardSection');
+            
             if (isWin) {
-                modalIconContainer.className = "mx-auto w-24 h-24 rounded-full flex items-center justify-center mb-4 shadow-xl bg-gradient-to-br from-yellow-400 to-orange-500 border-4 border-white";
-                modalEmoji.textContent = "🏆";
-                modalTitle.textContent = "ยินดีด้วยคุณชนะ!";
-                modalTitle.className = "text-3xl font-extrabold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-500";
-                modalMessage.textContent = winningMessages[Math.floor(Math.random() * winningMessages.length)];
-                rewardCodeElement.textContent = code;
-                rewardSection.classList.remove('hidden');
+                icon.className = "mx-auto w-24 h-24 rounded-full flex items-center justify-center mb-4 shadow-xl bg-gradient-to-br from-yellow-400 to-orange-500 border-4 border-white";
+                document.getElementById('modalEmoji').textContent = "🏆";
+                title.textContent = "ยินดีด้วยคุณชนะ!";
+                title.className = "text-3xl font-extrabold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 to-yellow-500";
+                msg.textContent = winningMessages[Math.floor(Math.random() * winningMessages.length)];
+                document.getElementById('rewardCode').textContent = code;
+                reward.classList.remove('hidden');
             } else {
-                modalIconContainer.className = "mx-auto w-24 h-24 rounded-full flex items-center justify-center mb-4 shadow-xl bg-gray-600 border-4 border-gray-500";
-                modalEmoji.textContent = "😢";
-                modalTitle.textContent = "เสียใจด้วยนะ";
-                modalTitle.className = "text-3xl font-extrabold mb-2 text-gray-300";
-                modalMessage.textContent = losingMessages[Math.floor(Math.random() * losingMessages.length)];
-                rewardSection.classList.add('hidden');
+                icon.className = "mx-auto w-24 h-24 rounded-full flex items-center justify-center mb-4 shadow-xl bg-gray-600 border-4 border-gray-500";
+                document.getElementById('modalEmoji').textContent = "😢";
+                title.textContent = "เสียใจด้วยนะ";
+                title.className = "text-3xl font-extrabold mb-2 text-gray-300";
+                msg.textContent = losingMessages[Math.floor(Math.random() * losingMessages.length)];
+                reward.classList.add('hidden');
             }
 
-            viewResultBtn.classList.remove('hidden');
-            
-            // Switch Game Area to "Played" state
+            document.getElementById('viewResultBtn').classList.remove('hidden');
             document.getElementById('gameArea').innerHTML = `
                 <div class="glass-panel p-6 rounded-2xl text-center">
                     <div class="text-6xl mb-4">${isWin ? '🎉' : '🥀'}</div>
                     <h3 class="text-xl font-bold mb-2 text-white">จบเกมแล้ว</h3>
                     <p class="text-white/70 text-sm">ขอบคุณที่ร่วมสนุกกับร้านหนานหล่อ</p>
-                    <div class="mt-4 inline-block bg-white/10 px-4 py-2 rounded-full text-sm">
-                        สกอร์จบเกม: คุณ ${state.pScore} - ${state.cScore} หนานหล่อ
-                    </div>
-                </div>
-            `;
+                    <div class="mt-4 inline-block bg-white/10 px-4 py-2 rounded-full text-sm">สกอร์: คุณ ${state.pScore} - ${state.cScore} หนานหล่อ</div>
+                </div>`;
+            document.getElementById('scoreboard').classList.add('hidden');
 
             toggleModal(true);
         }
 
         function toggleModal(show) {
             const modal = document.getElementById('resultModal');
-            const modalCard = document.getElementById('modalCard');
+            const card = document.getElementById('modalCard');
             if (show) {
                 modal.classList.remove('opacity-0', 'pointer-events-none');
-                modalCard.classList.remove('scale-90');
-                modalCard.classList.add('modal-enter', 'scale-100');
+                card.classList.remove('scale-90');
+                card.classList.add('modal-enter', 'scale-100');
             } else {
                 modal.classList.add('opacity-0', 'pointer-events-none');
-                modalCard.classList.remove('modal-enter', 'scale-100');
-                modalCard.classList.add('scale-90');
+                card.classList.remove('modal-enter', 'scale-100');
+                card.classList.add('scale-90');
             }
         }
 
-        // --- Logging & Admin ---
-        function logPlay(vid, isWin, code) {
-            // Get User Agent
-            const userAgent = navigator.userAgent;
+        // --- Admin Functions ---
+        function updateAdminUI() {
+            const type = document.getElementById('adminCooldownType').value;
+            const valContainer = document.getElementById('adminCooldownValueContainer');
+            if (type === 'none') {
+                valContainer.classList.add('hidden');
+            } else {
+                valContainer.classList.remove('hidden');
+            }
+        }
 
-            // 1. เก็บในเครื่องเหมือนเดิม (เพื่อให้หน้า Admin ในเกมยังพอดูได้คร่าวๆ)
-            try {
-                const logs = JSON.parse(localStorage.getItem(LOG_STORAGE_KEY) || '[]');
-                const newLog = {
-                    timestamp: new Date().toISOString(),
-                    visitorId: vid || 'Unknown',
-                    result: isWin ? 'WIN' : 'LOSE',
-                    code: code || '-',
-                    userAgent: userAgent // บันทึก User Agent ลง Local Storage
-                };
-                logs.unshift(newLog);
-                localStorage.setItem(LOG_STORAGE_KEY, JSON.stringify(logs));
-            } catch (e) { console.error('Local log error', e); }
+        function saveAdminSettings() {
+            const type = document.getElementById('adminCooldownType').value;
+            const val = parseInt(document.getElementById('adminCooldownValue').value) || 1;
+            
+            gameConfig = { cooldownType: type, cooldownValue: val };
+            localStorage.setItem(CONFIG_KEY, JSON.stringify(gameConfig));
+            
+            const status = document.getElementById('saveStatus');
+            status.classList.remove('hidden');
+            setTimeout(() => status.classList.add('hidden'), 2000);
+        }
 
-            // 2. ส่งไป Google Sheets (ถ้ามี URL)
-            if (GOOGLE_SCRIPT_URL && GOOGLE_SCRIPT_URL.startsWith('http')) {
-                fetch(GOOGLE_SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'no-cors', 
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        visitorId: vid || 'Unknown',
-                        result: isWin ? 'WIN' : 'LOSE',
-                        code: code || '-',
-                        userAgent: userAgent // ส่ง User Agent ไปที่ Sheet
-                    })
-                }).catch(err => console.error('Error logging to sheet', err));
+        function loadAdminSettings() {
+            const saved = localStorage.getItem(CONFIG_KEY);
+            if (saved) {
+                gameConfig = JSON.parse(saved);
+                document.getElementById('adminCooldownType').value = gameConfig.cooldownType;
+                document.getElementById('adminCooldownValue').value = gameConfig.cooldownValue;
+                updateAdminUI();
             }
         }
 
         function toggleAdminPanel(show) {
             const panel = document.getElementById('adminModal');
             if (show) {
+                loadAdminSettings();
                 renderLogs();
-                // Update Sync Status UI
                 const gsStatus = document.getElementById('gsStatus');
                 const hasUrl = GOOGLE_SCRIPT_URL && GOOGLE_SCRIPT_URL.startsWith('http');
-                gsStatus.textContent = hasUrl ? 'เชื่อมต่อแล้ว' : 'ไม่พบ URL';
+                gsStatus.textContent = hasUrl ? 'เชื่อมแล้ว' : 'ไม่พบ URL';
                 gsStatus.className = hasUrl ? 'text-green-400 font-bold' : 'text-red-400';
-                
                 panel.classList.remove('hidden');
             } else {
                 panel.classList.add('hidden');
             }
         }
 
+        function logPlay(vid, isWin, code) {
+            const userAgent = navigator.userAgent;
+            try {
+                const logs = JSON.parse(localStorage.getItem(LOG_STORAGE_KEY) || '[]');
+                logs.unshift({ timestamp: new Date().toISOString(), visitorId: vid || 'Unknown', result: isWin ? 'WIN' : 'LOSE', code: code || '-', userAgent: userAgent });
+                localStorage.setItem(LOG_STORAGE_KEY, JSON.stringify(logs));
+            } catch (e) { console.error(e); }
+
+            if (GOOGLE_SCRIPT_URL.startsWith('http')) {
+                fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST', mode: 'no-cors', 
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ visitorId: vid, result: isWin?'WIN':'LOSE', code: code||'-', userAgent: userAgent })
+                }).catch(e => console.error(e));
+            }
+        }
+
         function renderLogs() {
             const tbody = document.getElementById('logTableBody');
-            const noLogs = document.getElementById('noLogsMsg');
             tbody.innerHTML = '';
-            
             const logs = JSON.parse(localStorage.getItem(LOG_STORAGE_KEY) || '[]');
-            
-            if (logs.length === 0) {
-                noLogs.classList.remove('hidden');
-                return;
-            }
-            noLogs.classList.add('hidden');
-
+            if (logs.length === 0) { document.getElementById('noLogsMsg').classList.remove('hidden'); return; }
+            document.getElementById('noLogsMsg').classList.add('hidden');
             logs.forEach(log => {
-                const date = new Date(log.timestamp).toLocaleString('th-TH');
                 const tr = document.createElement('tr');
                 tr.className = 'admin-row border-b border-slate-800/50';
-                
-                const winClass = log.result === 'WIN' ? 'text-green-400 font-bold' : 'text-red-400';
-                const codeClass = log.code !== '-' ? 'text-yellow-400 font-mono' : 'text-slate-600';
-
-                // ไม่แสดง User Agent ในตารางเพราะจะทำให้รกเกินไป แต่จะ Export ออกมาได้
-                tr.innerHTML = `
-                    <td class="p-3 whitespace-nowrap text-slate-400">${date}</td>
+                tr.innerHTML = `<td class="p-3 whitespace-nowrap text-slate-400">${new Date(log.timestamp).toLocaleString('th-TH')}</td>
                     <td class="p-3 font-mono text-xs text-blue-300">${log.visitorId}</td>
-                    <td class="p-3 text-center ${winClass}">${log.result}</td>
-                    <td class="p-3 text-right ${codeClass}">${log.code}</td>
-                `;
+                    <td class="p-3 text-center ${log.result === 'WIN' ? 'text-green-400' : 'text-red-400'}">${log.result}</td>
+                    <td class="p-3 text-right text-yellow-400 font-mono">${log.code}</td>`;
                 tbody.appendChild(tr);
             });
         }
         
-        function clearLogs() {
-            if(confirm('ยืนยันล้างประวัติในเครื่องนี้? (ข้อมูลบน Sheet จะไม่หาย)')) {
-                localStorage.removeItem(LOG_STORAGE_KEY);
-                renderLogs();
-            }
-        }
-
+        function clearLogs() { if(confirm('ล้างประวัติ?')) { localStorage.removeItem(LOG_STORAGE_KEY); renderLogs(); } }
         function exportLogs() {
             const logs = JSON.parse(localStorage.getItem(LOG_STORAGE_KEY) || '[]');
-            if (logs.length === 0) { alert('ไม่มีข้อมูลให้ Export'); return; }
-            
-            // เพิ่ม Header "UserAgent" ใน CSV
-            let csvContent = "data:text/csv;charset=utf-8,Timestamp,VisitorID,Result,RewardCode,UserAgent\n";
-            logs.forEach(log => {
-                // เพิ่มข้อมูล User Agent ต่อท้าย (ใส่ quote ครอบเพื่อป้องกัน comma ใน user agent string)
-                const ua = log.userAgent ? `"${log.userAgent.replace(/"/g, '""')}"` : "";
-                const row = `${log.timestamp},${log.visitorId},${log.result},${log.code},${ua}`;
-                csvContent += row + "\r\n";
-            });
-            
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", "rps_nhanlor_logs_with_ua.csv");
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            if (logs.length === 0) return alert('ไม่มีข้อมูล');
+            let csv = "data:text/csv;charset=utf-8,Timestamp,VisitorID,Result,RewardCode,UserAgent\n" + 
+                logs.map(l => `${l.timestamp},${l.visitorId},${l.result},${l.code},"${(l.userAgent||'').replace(/"/g,'""')}"`).join("\r\n");
+            const link = document.createElement("a"); link.setAttribute("href", encodeURI(csv)); link.setAttribute("download", "logs.csv");
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
         }
 
-        // Login Logic
-        const adminTrigger = document.getElementById('adminTrigger');
-        const loginModal = document.getElementById('adminLoginModal');
-        
-        adminTrigger.addEventListener('click', () => {
-            adminClickCount++;
-            clearTimeout(adminClickTimer);
-            adminClickTimer = setTimeout(() => { adminClickCount = 0; }, 1500);
-            if (adminClickCount >= 5) {
-                adminClickCount = 0;
-                clearTimeout(adminClickTimer);
-                loginModal.classList.remove('hidden');
-                document.getElementById('adminPasswordInput').focus();
-            }
-        });
-
-        document.getElementById('cancelLoginBtn').addEventListener('click', () => loginModal.classList.add('hidden'));
-        document.getElementById('confirmLoginBtn').addEventListener('click', () => {
-            const pwd = document.getElementById('adminPasswordInput');
-            if (pwd.value === 'admin') {
-                loginModal.classList.add('hidden');
-                toggleAdminPanel(true);
-                pwd.value = '';
-                document.getElementById('loginErrorMsg').classList.add('hidden');
-            } else {
-                document.getElementById('loginErrorMsg').classList.remove('hidden');
-            }
-        });
-
         // --- Init ---
+        document.getElementById('adminTrigger').addEventListener('click', () => {
+            adminClickCount++; clearTimeout(adminClickTimer);
+            adminClickTimer = setTimeout(() => { adminClickCount = 0; }, 1500);
+            if (adminClickCount >= 5) { adminClickCount = 0; document.getElementById('adminLoginModal').classList.remove('hidden'); }
+        });
+        document.getElementById('cancelLoginBtn').addEventListener('click', () => document.getElementById('adminLoginModal').classList.add('hidden'));
+        document.getElementById('confirmLoginBtn').addEventListener('click', () => {
+            if (document.getElementById('adminPasswordInput').value === 'admin') {
+                document.getElementById('adminLoginModal').classList.add('hidden');
+                toggleAdminPanel(true); document.getElementById('adminPasswordInput').value = '';
+                document.getElementById('loginErrorMsg').classList.add('hidden');
+            } else document.getElementById('loginErrorMsg').classList.remove('hidden');
+        });
+
         async function init() {
             try {
                 const fp = await fpPromise;
                 const result = await fp.get();
                 visitorId = result.visitorId;
-            } catch (error) {
-                visitorId = 'visitor_' + Math.random().toString(36);
-            }
+            } catch (e) { visitorId = 'visitor_' + Math.random().toString(36); }
 
-            state.hasPlayed = localStorage.getItem(`${PLAYED_KEY_PREFIX}${visitorId}`) === 'true';
+            // Load Config
+            loadAdminSettings();
 
-            if (state.hasPlayed) {
-                const savedResult = JSON.parse(localStorage.getItem(`${RESULT_DATA_PREFIX}${visitorId}`));
-                if (savedResult) {
-                    showResultModal(savedResult.isWin, savedResult.code);
-                    toggleModal(false); // Close modal initially, let user click button
-                    document.getElementById('viewResultBtn').classList.remove('hidden');
-                    
-                    document.getElementById('gameArea').innerHTML = `
-                        <div class="glass-panel p-6 rounded-2xl text-center">
-                            <div class="text-6xl mb-4">${savedResult.isWin ? '🎉' : '🥀'}</div>
-                            <h3 class="text-xl font-bold mb-2 text-white">จบเกมแล้ว</h3>
-                            <p class="text-white/70 text-sm">ขอบคุณที่ร่วมสนุกกับร้านหนานหล่อ</p>
-                            <div class="mt-4 inline-block bg-white/10 px-4 py-2 rounded-full text-sm opacity-50">
-                                Best of 3 Result
-                            </div>
-                        </div>
-                    `;
-                    document.getElementById('scoreboard').classList.add('hidden');
-                }
-            } else {
+            // Check Cooldown Status
+            const status = checkCooldown();
+
+            if (status.allowed) {
+                // Allowed to play
                 state.canPlay = true;
-                document.getElementById('scoreboard').classList.add('flex');
+                state.hasPlayed = false;
                 document.getElementById('scoreboard').classList.remove('hidden');
+                document.getElementById('scoreboard').classList.add('flex');
+            } else {
+                // Blocked
+                state.hasPlayed = true;
+                const savedResult = JSON.parse(localStorage.getItem(`${RESULT_DATA_PREFIX}${visitorId}`));
+                
+                // Hide game board controls
+                document.getElementById('controls').classList.add('hidden');
+                document.getElementById('statusText').classList.add('hidden');
+                document.getElementById('battleArena').classList.add('hidden');
+                document.getElementById('scoreboard').classList.add('hidden');
+
+                // Show cooldown message if mode is not none
+                if (gameConfig.cooldownType !== 'none' && status.nextPlayTime) {
+                    document.getElementById('cooldownMsg').classList.remove('hidden');
+                    startCountdown(status.nextPlayTime);
+                }
+
+                // Show previous result panel
+                if (savedResult) {
+                    document.getElementById('viewResultBtn').classList.remove('hidden');
+                    document.getElementById('gameArea').innerHTML += `
+                        <div class="glass-panel p-6 rounded-2xl text-center mt-4">
+                            <h3 class="text-xl font-bold mb-2 text-white">คุณเล่นไปแล้ว</h3>
+                            <p class="text-white/70 text-sm">ขอบคุณที่ร่วมสนุกกับร้านหนานหล่อ</p>
+                        </div>`;
+                }
             }
             lucide.createIcons();
         }
 
-        // --- Helpers ---
-        function triggerConfetti() {
-            var duration = 3 * 1000;
-            var animationEnd = Date.now() + duration;
-            var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 60 };
-            function randomInRange(min, max) { return Math.random() * (max - min) + min; }
-            var interval = setInterval(function() {
-                var timeLeft = animationEnd - Date.now();
-                if (timeLeft <= 0) return clearInterval(interval);
-                var particleCount = 50 * (timeLeft / duration);
-                confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
-                confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
-            }, 250);
-        }
-
         document.getElementById('viewResultBtn').addEventListener('click', () => toggleModal(true));
-        
-        // เพิ่มฟังก์ชันแตะพื้นหลังเพื่อปิด Modal
-        document.getElementById('resultModal').addEventListener('click', (e) => {
-            if (e.target.id === 'resultModal') toggleModal(false);
-        });
-
+        document.getElementById('resultModal').addEventListener('click', (e) => { if (e.target.id === 'resultModal') toggleModal(false); });
         document.getElementById('soundToggle').addEventListener('click', () => {
             state.soundEnabled = !state.soundEnabled;
             document.getElementById('soundIcon').setAttribute('data-lucide', state.soundEnabled ? 'volume-2' : 'volume-x');
             lucide.createIcons();
         });
 
-        // Start
         init();
 
         tailwind.config = {
-            theme: {
-                extend: {
-                    animation: { blob: "blob 7s infinite" },
-                    keyframes: {
-                        blob: {
-                            "0%": { transform: "translate(0px, 0px) scale(1)" },
-                            "33%": { transform: "translate(30px, -50px) scale(1.1)" },
-                            "66%": { transform: "translate(-20px, 20px) scale(0.9)" },
-                            "100%": { transform: "translate(0px, 0px) scale(1)" },
-                        },
-                    },
-                },
-            },
+            theme: { extend: { animation: { blob: "blob 7s infinite" }, keyframes: { blob: { "0%": { transform: "translate(0px, 0px) scale(1)" }, "33%": { transform: "translate(30px, -50px) scale(1.1)" }, "66%": { transform: "translate(-20px, 20px) scale(0.9)" }, "100%": { transform: "translate(0px, 0px) scale(1)" } } } } },
         }
     </script>
 </body>
